@@ -9,8 +9,8 @@ class TestDice(unittest.TestCase):
     # Valores Válidos
     def test_tirada_valida(self):
         dice1, dice2 = self.dice.tirar_dados()
-        self.assertIn(dice1, range(1, 6))
-        self.assertIn(dice2, range(1, 6))
+        self.assertIn(dice1, range(1, 7))
+        self.assertIn(dice2, range(1, 7))
 
     # Dados No Dobles: 2 Movimientos
     def test_obtener_no_doble(self):
@@ -24,4 +24,4 @@ class TestDice(unittest.TestCase):
         self.dice.establecer_valores(3, 3)
         movimientos = self.dice.cantidad_movimientos()
         self.assertEqual(movimientos, [3, 3, 3, 3])
-        self.assertTrue(self.dice.es_doble()) # es doble
+        self.assertTrue(self.dice.es_doble())
