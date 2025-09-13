@@ -67,7 +67,6 @@ Respuesta:
             movimientos = self.dado.cantidad_de_movimientos()
             self.assertEqual(movimientos, [2, 5])
 
-
     if __name__ == "__main__":
         unittest.main()
    ```
@@ -152,4 +151,126 @@ La idea es **probar solo la lógica interna de la ficha**: atributos, cambios de
    if __name__ == "__main__":
       unittest.main()
    ```
-Salida: El código fue incorporado en el archivo `tests/test_checker.py`. Se modificó nuevamente el nombre de algunas funciones y variables, y en test_desactivar_ficha se incorporó que la posición quede en None si la ficha ya no está en el tablero.
+Salida: El código fue incorporado en el archivo `tests/test_checker.py`. Se modificó nuevamente el nombre de algunas funciones y variables, y en `test_desactivar_ficha()` se incorporó que la posición quede en None si la ficha ya no está en el tablero.
+
+## 👤 Class Player
+
+### ChatGPT 10/09/2025
+
+Prompt: Me podrias decir que tests puedo hacer relacionados a la clase Player en el juego de backgammon?
+
+Respuesta: ¡Claro! La clase **`Player`** en Backgammon representa a cada jugador, así que sus tests deberían enfocarse en lo que **un jugador controla** dentro del juego. Te paso un listado de ideas de tests que podrías implementar:
+
+---
+📌 Ideas de tests para `Player`
+1. **Inicialización correcta**
+   * Verificar que el jugador se crea con su color, nombre o identificador.
+   * Chequear que su lista de fichas esté vacía (o inicializada) y que comience en estado válido.
+2. **Asignación de fichas**
+   * Probar que al asignar fichas al jugador, efectivamente se agregan y se puede consultar cuántas tiene.
+   * Verificar que no se dupliquen fichas.
+3. **Cantidad de fichas en juego**
+   * Si tiene 15 fichas al inicio, asegurarse de que el conteo sea correcto.
+   * Probar que al mover o capturar fichas se actualice ese número.
+4. **Captura de ficha**
+   * Simular que una ficha del jugador es enviada a la barra y comprobar que el jugador tiene al menos una ficha “fuera de juego”.
+5. **Reingreso de ficha desde la barra**
+   * Dar un valor de dado válido y verificar que una ficha capturada puede volver al tablero.
+6. **Todas las fichas fuera (condición de victoria)**
+   * Simular que todas las fichas del jugador fueron retiradas del tablero → el jugador debería estar en estado “ganador”.
+7. **Turnos del jugador**
+   * Verificar que el jugador pueda recibir y almacenar los valores de una tirada de dados.
+   * Comprobar que puede usar un valor de dado y que ya no esté disponible después de usarlo.
+8. **Validación de movimientos permitidos** *(opcional, si Player tiene esa lógica y no Game/Board)*
+   * Testear que, dado un valor de dado, el jugador solo pueda mover fichas a posiciones válidas.
+---
+
+📌 **Resumen**:  
+Los tests de `Player` deben cubrir principalmente:
+* **Identidad** (color, nombre).  
+* **Gestión de fichas** (cuántas tiene, cuántas en la barra, cuántas retiradas).  
+* **Turnos** (tiradas y consumo de dados).  
+* **Condiciones especiales** (ganar la partida al retirar todas las fichas).  
+
+---
+Prompt: Y con esos tests estas respetando esto? BackgammonGame → Coordina flujo general, Board → Representa el tablero y puntos, Player → Representa a un jugador, Dice → Lógica de tiradas, Checker → Representa cada ficha. O sea, no me estas mezclando las responsabilidades?
+
+Respuesta: Muy buena observación 👌, porque justo ahí está el riesgo: si no separamos bien responsabilidades, los tests de `Player` terminan probando cosas que en realidad pertenecen a `Board` o `BackgammonGame`.
+
+---
+📌 Lo que **sí** le corresponde a `Player`
+* Identidad del jugador (**color**, nombre, id).
+* La **colección de fichas** que le pertenecen (sus 15 checkers).
+* Estado general del jugador (ej: sigue en partida, ya ganó, etc.).
+* Posiblemente un “contador” de fichas retiradas del tablero (para saber cuándo gana).
+---
+📌 Lo que **NO** debería hacer `Player`
+* **Decidir movimientos** (eso lo hace `BackgammonGame`, usando el `Board` y los `Dice`).
+* **Verificar posiciones válidas** (es lógica del `Board`).
+* **Aplicar tiradas de dados** directamente (eso es del `Game`, que reparte las tiradas a los jugadores).
+
+---
+✅ Entonces, si ajustamos la lista de tests para no mezclar:
+1. **Inicialización correcta**
+   * Ver que al crear un `Player` sus atributos (`__color__`, nombre, etc.) estén bien.
+2. **Asignación de fichas propias**
+   * Chequear que se le puedan asociar fichas (`Checker`) y que pertenezcan al jugador.
+3. **Cantidad de fichas total**
+   * Confirmar que arranca con 15 fichas y que se puede consultar cuántas tiene activas o retiradas.
+4. **Marcado de fichas retiradas**
+   * Probar que si se incrementa su contador de fichas retiradas, refleje el cambio.
+5. **Condición de victoria**
+   * Simular que retiró todas las fichas y verificar que el jugador es declarado “ganador”.
+---
+⚠️ Cosas como “usar tirada de dados” o “mover ficha de posición” no van en `Player`, porque ahí mezclarías con `Dice` o `Board`.
+
+---
+Prompt: Bien, entonces me podrías hacer los tests de forma unitaria con unittest? Sin depender de una clase distinta a Player.
+
+Respuesta: ¡Perfecto! Si querés que los tests de **`Player`** sean **unitarios de verdad**, entonces no deben depender de otras clases como `Checker`. Solo testeamos el propio comportamiento de `Player`.
+   ```bash
+   import unittest
+   from core.player import Player
+
+
+   class TestPlayer(unittest.TestCase):
+
+      def setUp(self):
+         # Se crea un jugador antes de cada test
+         self.player = Player(color="Negro", nombre="Jugador 1")
+
+      def test_inicializacion(self):
+         """El jugador debe crearse con color, nombre y sin fichas."""
+         self.assertEqual(self.player.__color__, "Negro")
+         self.assertEqual(self.player.__nombre__, "Jugador 1")
+         self.assertEqual(self.player.__fichas__, [])
+         self.assertEqual(self.player.__fichas_retiradas__, 0)
+
+      def test_agregar_ficha(self):
+         """Al agregar una ficha (mock), debe guardarse en la lista."""
+         self.player.agregar_ficha("ficha_mock")
+         self.assertIn("ficha_mock", self.player.__fichas__)
+         self.assertEqual(len(self.player.__fichas__), 1)
+
+      def test_contar_fichas(self):
+         """El método contar_fichas debe devolver la cantidad correcta."""
+         self.player.__fichas__ = ["f1", "f2", "f3"]
+         self.assertEqual(self.player.contar_fichas(), 3)
+
+      def test_incrementar_fichas_retiradas(self):
+         """Debe aumentar el contador de fichas retiradas en uno."""
+         self.assertEqual(self.player.__fichas_retiradas__, 0)
+         self.player.incrementar_fichas_retiradas()
+         self.assertEqual(self.player.__fichas_retiradas__, 1)
+
+      def test_condicion_victoria(self):
+         """El jugador gana si retiró todas sus fichas (15)."""
+         for _ in range(15):
+            self.player.incrementar_fichas_retiradas()
+         self.assertTrue(self.player.ha_ganado())
+         self.assertEqual(self.player.__fichas_retiradas__, 15)
+
+   if __name__ == "__main__":
+      unittest.main()
+   ```
+Salida: El código fue incorporado en el archivo `tests/test_player.py`. Se modificó el nombre de algunas variables y se incorporó los tests para los métodos `obtener_color()` y `obtener_nombre()` de la clase Player.
