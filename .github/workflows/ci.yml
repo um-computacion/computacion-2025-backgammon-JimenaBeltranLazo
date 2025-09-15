@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-analyze:
     runs-on: ubuntu-latest
-
+    
     # Evitar bucle infinito
     if: github.actor != 'github-actions[bot]'
 
@@ -35,18 +35,22 @@ jobs:
 
       - name: Run tests and generate coverage report
         run: |
+          mkdir -p reports
           coverage run -m unittest discover -s tests -p "test_*.py"
-          coverage xml -o cobertura.xml
-          coverage report -m > coverage_report.txt
+          coverage xml -o reports/cobertura.xml
+          coverage report -m > reports/coverage_report.txt
 
       - name: Run Pylint and generate report
         run: |
-          pylint --rcfile=.pylintrc core/ tests/ > pylint_report.txt || true
+          mkdir -p reports
+          pylint --rcfile=.pylintrc core/ tests/ > reports/pylint_report.txt || true
 
       - name: Generate reports file
         run: |
-          cat << 'EOF' > generate_reports.py
+          cat << 'EOF' > reports/generate_reports.py
           import os
+
+          os.makedirs("reports", exist_ok=True)
 
           def read_file(filepath):
               if not os.path.exists(filepath):
@@ -54,8 +58,8 @@ jobs:
               with open(filepath, "r") as f:
                   return f.read()
 
-          coverage_report = read_file("coverage_report.txt")
-          pylint_report = read_file("pylint_report.txt")
+          coverage_report = read_file("reports/coverage_report.txt")
+          pylint_report = read_file("reports/pylint_report.txt")
 
           reports_content = f"""# Automated Reports
 
@@ -70,10 +74,10 @@ jobs:
           ```
           """
 
-          with open("REPORTS.md", "w") as f:
+          with open("reports/REPORTS.md", "w") as f:
               f.write(reports_content)
           EOF
-          python generate_reports.py
+          python reports/generate_reports.py
 
       - name: Create Pull Request for reports
         if: github.ref == 'refs/heads/main'
