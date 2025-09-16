@@ -274,3 +274,155 @@ Respuesta: ¡Perfecto! Si querés que los tests de **`Player`** sean **unitarios
       unittest.main()
    ```
 Salida: El código fue incorporado en el archivo `tests/test_player.py`. Se modificó el nombre de algunas variables y se incorporó los tests para los métodos `obtener_color()` y `obtener_nombre()` de la clase Player.
+
+## 🎯 Class Board
+
+### ChatGPT 15/09/2025
+
+Prompt: Me podrías hacer una lista de tests unitarios específicos para la clase Board siguiendo las reglas reales del juego Backgammon? No quiero tests genéricos.
+
+Respuesta: ¡Muy bien! 👌 Te preparo un listado de ideas de tests unitarios, más alineados con la lógica real del Backgammon, que podrías implementar para tu clase `Board`.
+
+---
+📌 Ideas de tests unitarios para `Board`
+1. **Inicialización del tablero**
+   * Al crear un tablero debe tener 24 casillas.
+   * Cada casilla arranca con la disposición inicial estándar de Backgammon (ej. 2 blancas en la casilla 0, 5 negras en la casilla 5, etc.).
+   * Barra y retiradas empiezan vacías.
+2. **Movimiento de ficha válido**
+   * Una ficha puede moverse desde una casilla de origen a otra de destino.
+   * El origen pierde una ficha y el destino gana una ficha del color correcto.
+3. **Movimiento inválido**
+   * Si el origen está vacío, o la ficha no corresponde al color, el movimiento debe lanzar `ValueError`.
+   * No se permite mover hacia una casilla ocupada por 2 o más fichas enemigas.
+4. **Captura de ficha enemiga**
+   * Si el destino tiene exactamente 1 ficha rival, esta debe ser capturada.
+   * La ficha capturada desaparece de la casilla y aparece en la **barra** del color contrario.
+5. **Enviar ficha a la barra**
+   * Se puede forzar el envío de una ficha propia desde una casilla hacia la barra.
+   * Si la casilla está vacía o contiene ficha de otro color, no debe hacerlo.
+6. **Mover ficha desde la barra**
+   * Una ficha que está en la barra puede reingresar al tablero en una casilla válida.
+   * Si la barra está vacía o la casilla está bloqueada (2 o más fichas enemigas), el movimiento debe fallar.
+7. **Retiro de fichas (retirada/bear off)**
+   * Cuando un jugador puede retirarlas, al hacerlo la ficha desaparece de la casilla.
+   * La ficha debe quedar registrada en la lista de retiradas del jugador.
+   * Si la casilla está vacía o la ficha es de otro color, debe lanzar error.
+8. **Reinicio del tablero**
+   * El método `reiniciar()` debe restaurar la disposición inicial completa.
+   * Barra y retiradas deben volver a estar vacías.
+---
+
+📌 **Resumen**  
+Los tests de `Board` deben cubrir:
+* **Inicialización correcta** (24 casillas con disposición estándar).
+* **Operaciones válidas** (mover fichas, capturar, enviar/recuperar de la barra, retirar fichas).
+* **Operaciones inválidas** (movimientos ilegales, casillas vacías, colores incorrectos).
+* **Estados especiales del juego** (barra, retiradas y reinicio del tablero).
+
+---
+Prompt: Bien, me podrías hacer los tests usando unittest en python?
+
+Respuesta:
+📂 tests/test_board.py
+   ```bash
+   import unittest
+   from core.board import Board
+
+   class TestBoard(unittest.TestCase):
+
+      def setUp(self):
+         self.board = Board()
+
+      # --- Inicialización ---
+      def test_inicializacion_casillas(self):
+         """El tablero debe iniciar con la configuración estándar de Backgammon."""
+         casillas = self.board.mostrar_casillas()
+         self.assertEqual(len(casillas), 24)
+         self.assertEqual(casillas[0], ["blanco", "blanco"])
+         self.assertEqual(casillas[11], ["blanco"] * 5)
+         self.assertEqual(casillas[23], ["negro", "negro"])
+         self.assertEqual(casillas[5], ["negro"] * 5)
+
+      def test_inicializacion_barra_retiradas_vacias(self):
+         """Barra y retiradas deben estar vacías al inicio."""
+         self.assertEqual(self.board.mostrar_barra(), {"blanco": [], "negro": []})
+         self.assertEqual(self.board.mostrar_retiradas(), {"blanco": [], "negro": []})
+
+      # --- Movimiento de fichas ---
+      def test_mover_ficha_valida(self):
+         """Mover ficha válido actualiza las casillas."""
+         self.board.__casillas__[0] = ["blanco"]
+         self.board.__casillas__[1] = []
+         self.board.mover_ficha(0, 1, "blanco")
+         self.assertIn("blanco", self.board.__casillas__[1])
+         self.assertNotIn("blanco", self.board.__casillas__[0])
+
+      def test_mover_ficha_invalida(self):
+         """No se puede mover si no es legal."""
+         with self.assertRaises(ValueError):
+            self.board.mover_ficha(0, 1, "negro")  # no hay negras en 0
+
+      def test_mover_ficha_con_captura(self):
+         """Si hay una ficha enemiga sola, debe ir a la barra."""
+         self.board.__casillas__[0] = ["blanco"]
+         self.board.__casillas__[1] = ["negro"]
+         self.board.mover_ficha(0, 1, "blanco")
+         self.assertIn("blanco", self.board.__casillas__[1])
+         self.assertIn("negro", self.board.__barra__["negro"])
+
+      # --- Barra ---
+      def test_enviar_a_barra_valido(self):
+         """Enviar ficha a la barra cuando color coincide."""
+         self.board.__casillas__[0] = ["blanco"]
+         resultado = self.board.enviar_a_barra("blanco", 0)
+         self.assertTrue(resultado)
+         self.assertIn("blanco", self.board.__barra__["blanco"])
+         self.assertEqual(self.board.__casillas__[0], [])
+
+      def test_enviar_a_barra_invalido(self):
+         """No debe enviar a barra si casilla vacía o color incorrecto."""
+         self.board.__casillas__[0] = []
+         self.assertFalse(self.board.enviar_a_barra("blanco", 0))
+         self.board.__casillas__[0] = ["negro"]
+         self.assertFalse(self.board.enviar_a_barra("blanco", 0))
+
+      def test_mover_desde_barra_valido(self):
+         """Mover ficha desde barra a casilla vacía."""
+         self.board.__barra__["blanco"].append("blanco")
+         resultado = self.board.mover_desde_barra("blanco", 2)
+         self.assertTrue(resultado)
+         self.assertIn("blanco", self.board.__casillas__[2])
+         self.assertEqual(self.board.__barra__["blanco"], [])
+
+      def test_mover_desde_barra_invalido(self):
+         """No se mueve desde barra si está vacía."""
+         resultado = self.board.mover_desde_barra("negro", 3)
+         self.assertFalse(resultado)
+
+      # --- Borne off ---
+      def test_bornear_ficha_valida(self):
+         """Retirar ficha válida la mueve a retiradas."""
+         self.board.__casillas__[23] = ["negro"]
+         self.board.bornear_ficha(23, "negro")
+         self.assertIn("negro", self.board.__fichas_retiradas__["negro"])
+         self.assertEqual(self.board.__casillas__[23], [])
+
+      def test_bornear_ficha_invalida(self):
+         """No se puede retirar ficha si casilla vacía o color distinto."""
+         with self.assertRaises(ValueError):
+            self.board.bornear_ficha(0, "negro")  # en 0 hay blancas al inicio
+
+      # --- Reinicio ---
+      def test_reiniciar_tablero(self):
+         """Reiniciar deja tablero en estado inicial."""
+         self.board.__casillas__[0] = []
+         self.board.__barra__["blanco"].append("blanco")
+         self.board.reiniciar()
+         self.assertEqual(self.board.__casillas__[0], ["blanco", "blanco"])
+         self.assertEqual(self.board.__barra__, {"blanco": [], "negro": []})
+
+   if __name__ == "__main__":
+      unittest.main()
+   ```
+Salida: El código fue incorporado en el archivo `tests/test_board.py`. Se modificó el nombre de algunas variables y se incorporaron tests para casos como mover fichas fuera de rango o a casillas bloqueadas, enviar o retirar fichas desde posiciones inválidas y mover desde la barra a casillas no permitidas. Estos tests se agregaron ya que en el reporte de cobertura había lineas que no estaban cubiertas después de haber implementado la clase `Board`.
