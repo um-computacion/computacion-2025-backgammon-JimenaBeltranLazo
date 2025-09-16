@@ -24,6 +24,12 @@ class TestBoard(unittest.TestCase):
         self.assertEqual(self.board.mostrar_barra(), {"Blanco": [], "Negro": []})
         self.assertEqual(self.board.mostrar_retiradas(), {"Blanco": [], "Negro": []})
 
+    def test_mover_ficha_fuera_de_rango(self):
+        with self.assertRaises(ValueError):
+            self.board.mover_ficha(-1, 1, "Blanco")
+        with self.assertRaises(ValueError):
+            self.board.mover_ficha(0, 24, "Blanco")
+
     # Movimiento de Fichas
     def test_mover_ficha_valida(self):
         # Mover ficha válida actualiza las casillas
@@ -46,6 +52,12 @@ class TestBoard(unittest.TestCase):
         self.assertIn("Blanco", self.board.__casillas__[1])
         self.assertIn("Negro", self.board.__barra__["Negro"])
 
+    def test_mover_ficha_a_casilla_bloqueada(self):
+        self.board.__casillas__[0] = ["Blanco"]
+        self.board.__casillas__[1] = ["Negro", "Negro"]
+        with self.assertRaises(ValueError):
+            self.board.mover_ficha(0, 1, "Blanco")
+
     # Barra
     def test_enviar_a_barra_valido(self):
         # Enviar ficha a la barra cuando el color coincide
@@ -62,6 +74,12 @@ class TestBoard(unittest.TestCase):
         self.board.__casillas__[0] = ["Negro"]
         self.assertFalse(self.board.enviar_a_barra("Blanco", 0))
 
+    def test_enviar_a_barra_fuera_de_rango(self):
+        resultado = self.board.enviar_a_barra("Blanco", -1)
+        self.assertFalse(resultado)
+        resultado = self.board.enviar_a_barra("Blanco", 24)
+        self.assertFalse(resultado)
+
     def test_mover_desde_barra_valido(self):
         # Mover ficha desde barra a casilla vacía
         self.board.__barra__["Blanco"].append("Blanco")
@@ -73,6 +91,13 @@ class TestBoard(unittest.TestCase):
     def test_mover_desde_barra_invalido(self):
         # No se mueve desde barra si está vacía
         resultado = self.board.mover_desde_barra("Negro", 3)
+        self.assertFalse(resultado)
+
+    def test_mover_desde_barra_fuera_de_rango(self):
+        self.board.__barra__["Blanco"].append("Blanco")
+        resultado = self.board.mover_desde_barra("Blanco", -1)
+        self.assertFalse(resultado)
+        resultado = self.board.mover_desde_barra("Blanco", 24)
         self.assertFalse(resultado)
 
     # Fichas Retiradas
@@ -88,9 +113,15 @@ class TestBoard(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.board.retirar_ficha(0, "Negro") # en 0 hay blancas al inicio
 
+    def test_retirar_ficha_fuera_de_rango(self):
+        with self.assertRaises(ValueError):
+            self.board.retirar_ficha(-1, "Blanco")
+        with self.assertRaises(ValueError):
+            self.board.retirar_ficha(24, "Negro")
+
     # Reinicio
     def test_reiniciar_tablero(self):
-       # Tablero vuelve a estado inicial
+       # Tablero vuelve al estado inicial
         self.board.__casillas__[0] = []
         self.board.__barra__["Blanco"].append("Blanco")
         self.board.reiniciar()
