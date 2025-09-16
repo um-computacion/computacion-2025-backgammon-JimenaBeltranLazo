@@ -1,8 +1,9 @@
 Name               Stmts   Miss  Cover   Missing
 ------------------------------------------------
 core/__init__.py       0      0   100%
+core/board.py         61      0   100%
 core/checker.py        9      0   100%
 core/dice.py          18      0   100%
 core/player.py        18      0   100%
 ------------------------------------------------
-TOTAL                 45      0   100%
+TOTAL                106      0   100%
