@@ -23,6 +23,21 @@ core/checker.py:1:0: C0114: Missing module docstring (missing-module-docstring)
 core/checker.py:1:0: C0115: Missing class docstring (missing-class-docstring)
 core/checker.py:8:4: C0116: Missing function or method docstring (missing-function-docstring)
 core/checker.py:1:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+************* Module core.board
+core/board.py:2:0: C0303: Trailing whitespace (trailing-whitespace)
+core/board.py:34:0: C0303: Trailing whitespace (trailing-whitespace)
+core/board.py:38:0: C0303: Trailing whitespace (trailing-whitespace)
+core/board.py:75:0: C0304: Final newline missing (missing-final-newline)
+core/board.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+core/board.py:1:0: C0115: Missing class docstring (missing-class-docstring)
+core/board.py:20:4: C0116: Missing function or method docstring (missing-function-docstring)
+core/board.py:23:4: C0116: Missing function or method docstring (missing-function-docstring)
+core/board.py:26:4: C0116: Missing function or method docstring (missing-function-docstring)
+core/board.py:29:4: C0116: Missing function or method docstring (missing-function-docstring)
+core/board.py:46:4: C0116: Missing function or method docstring (missing-function-docstring)
+core/board.py:55:4: C0116: Missing function or method docstring (missing-function-docstring)
+core/board.py:64:4: C0116: Missing function or method docstring (missing-function-docstring)
+core/board.py:72:4: C0116: Missing function or method docstring (missing-function-docstring)
 ************* Module tests.test_checker
 tests/test_checker.py:29:0: C0304: Final newline missing (missing-final-newline)
 tests/test_checker.py:1:0: C0114: Missing module docstring (missing-module-docstring)
@@ -43,6 +58,28 @@ tests/test_player.py:22:4: C0116: Missing function or method docstring (missing-
 tests/test_player.py:27:4: C0116: Missing function or method docstring (missing-function-docstring)
 tests/test_player.py:31:4: C0116: Missing function or method docstring (missing-function-docstring)
 tests/test_player.py:37:4: C0116: Missing function or method docstring (missing-function-docstring)
+************* Module tests.test_board
+tests/test_board.py:21:0: C0303: Trailing whitespace (trailing-whitespace)
+tests/test_board.py:129:0: C0304: Final newline missing (missing-final-newline)
+tests/test_board.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+tests/test_board.py:4:0: C0115: Missing class docstring (missing-class-docstring)
+tests/test_board.py:10:4: C0116: Missing function or method docstring (missing-function-docstring)
+tests/test_board.py:22:4: C0116: Missing function or method docstring (missing-function-docstring)
+tests/test_board.py:27:4: C0116: Missing function or method docstring (missing-function-docstring)
+tests/test_board.py:34:4: C0116: Missing function or method docstring (missing-function-docstring)
+tests/test_board.py:42:4: C0116: Missing function or method docstring (missing-function-docstring)
+tests/test_board.py:47:4: C0116: Missing function or method docstring (missing-function-docstring)
+tests/test_board.py:55:4: C0116: Missing function or method docstring (missing-function-docstring)
+tests/test_board.py:62:4: C0116: Missing function or method docstring (missing-function-docstring)
+tests/test_board.py:70:4: C0116: Missing function or method docstring (missing-function-docstring)
+tests/test_board.py:77:4: C0116: Missing function or method docstring (missing-function-docstring)
+tests/test_board.py:83:4: C0116: Missing function or method docstring (missing-function-docstring)
+tests/test_board.py:91:4: C0116: Missing function or method docstring (missing-function-docstring)
+tests/test_board.py:96:4: C0116: Missing function or method docstring (missing-function-docstring)
+tests/test_board.py:104:4: C0116: Missing function or method docstring (missing-function-docstring)
+tests/test_board.py:111:4: C0116: Missing function or method docstring (missing-function-docstring)
+tests/test_board.py:116:4: C0116: Missing function or method docstring (missing-function-docstring)
+tests/test_board.py:123:4: C0116: Missing function or method docstring (missing-function-docstring)
 ************* Module tests.test_dice
 tests/test_dice.py:27:0: C0304: Final newline missing (missing-final-newline)
 tests/test_dice.py:1:0: C0114: Missing module docstring (missing-module-docstring)
@@ -52,5 +89,5 @@ tests/test_dice.py:16:4: C0116: Missing function or method docstring (missing-fu
 tests/test_dice.py:23:4: C0116: Missing function or method docstring (missing-function-docstring)
 
 -----------------------------------
-Your code has been rated at 5.96/10
+Your code has been rated at 6.99/10
 
