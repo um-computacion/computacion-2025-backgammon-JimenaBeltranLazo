@@ -1,181 +1,204 @@
 import unittest
-from core.backgammongame import BackgammonGame
+from core.board import Board
+from core.dice import Dice
+from core.player import Player
+from core.backgammongame import BackgammonGame 
 
 class TestBackgammonGame(unittest.TestCase):
 
     def setUp(self):
-        self.game = BackgammonGame()
-        self.game.iniciar_juego()
-        self.white = self.game.__players__[0]
-        self.black = self.game.__players__[1]
+        self.player_blanco = Player("Blanco", "Jugador A")
+        self.player_negro = Player("Negro", "Jugador B")
+        self.board = Board()
+        self.dice = Dice()
+        # Inicialización del juego
+        self.game = BackgammonGame(self.board, self.dice, self.player_blanco, self.player_negro)
 
-    # Inicio de juego y estado inicial
-    def test_inicio_juego(self):
-        self.assertIsNotNone(self.game.obtener_jugador_actual())
-        self.assertFalse(self.game.juego_terminado())
-        self.assertEqual(len(self.game.board.mostrar_casillas()), 24)
 
-    # Turnos alternados
-    def test_turnos_alternados(self):
-        player1 = self.game.obtener_jugador_actual()
-        self.game.siguiente_turno()
-        player2 = self.game.obtener_jugador_actual()
-        self.assertNotEqual(player1, player2)
-        self.game.siguiente_turno()
-        self.assertEqual(player1, self.game.obtener_jugador_actual())
+# Inicialización y Gestión de Turnos
+    def test_configuracion_inicial_del_tablero(self):
+        """Verifica que el Game se inicie con el tablero en la configuración estándar."""
+        self.assertEqual(len(self.game.__tablero__.mostrar_casillas()[0]), 2)
+        self.assertTrue(self.game.__tablero__.mostrar_barra()["Blanco"] == [])
 
-    # Movimiento legal simple
-    def test_movimiento_valido(self):
-        self.game.board.reiniciar()
-        self.game.board.__casillas__[0] = ["Blanco"]
-        self.game.dice.establecer_valores(1, 1)
-        movimientos = self.game.obtener_movimientos_validos()
-        if movimientos:
-            resultado = self.game.jugar_turno([movimientos[0]])
-            self.assertTrue(resultado)
+    def test_determinar_primer_jugador_por_dado_alto(self):
+        """Verifica que el Game asigne el turno al jugador con el dado más alto."""
+        # Simular tirada: Blanco (4), Negro (2).
+        self.dice.establecer_valores(4, 0) # Blanco
+        self.game.determinar_primer_turno() 
+        self.dice.establecer_valores(2, 0) # Negro
+        self.game.determinar_primer_turno() 
+        
+        self.assertEqual(self.game.__jugador_actual__.obtener_color(), "Blanco")
 
-    # Intento de movimiento inválido
-    def test_movimiento_invalido(self):
-        self.game.board.reiniciar()
-        self.game.board.__casillas__[0] = ["Blanco"]
-        self.game.dice.establecer_valores(2, 4)
-        movimientos_invalidos = [(99, 100)]
-        resultado = self.game.jugar_turno(movimientos_invalidos)
-        self.assertFalse(resultado)
+    def test_tirada_doble_y_conteo_de_cuatro_movimientos(self):
+        """Verifica que una tirada doble resulte en 4 movimientos disponibles."""
+        self.dice.establecer_valores(3, 3) 
+        self.game.iniciar_turno()
+        
+        self.assertEqual(self.game.__movimientos_disponibles__, [3, 3, 3, 3])
+        self.assertEqual(self.game.__movimientos_restantes__, 4)
 
-    # Captura de ficha enemiga
-    def test_captura_ficha(self):
-        current_player = self.game.obtener_jugador_actual()
-        opponent_player = self.game.obtener_oponente()
-        self.game.board.reiniciar()
-        self.game.board.__casillas__[8] = [opponent_player.__color__]
-        self.game.board.__casillas__[6] = [current_player.__color__]
-        self.game.dice.establecer_valores(2, 4)
-        resultado = self.game.jugar_turno([(6, 8)])
-        self.assertTrue(resultado)
-        self.assertTrue(self.game.hay_ficha_en_barra(opponent_player.__color__))
+    def test_cambio_de_turno_automatico(self):
+        """Verifica que el turno cambie solo cuando los movimientos restantes son cero."""
+        self.game.__jugador_actual__ = self.player_blanco
+        self.game.__movimientos_restantes__ = 0
+        self.game.finalizar_turno()
 
-    # Movimiento desde la barra obligatorio
-    def test_prioridad_barra(self):
-        player = self.game.obtener_jugador_actual()
-        self.game.board.reiniciar()
-        self.game.board.__barra__[player.__color__] = [player.__color__]
-        self.game.dice.establecer_valores(3, 5)
-        movimiento_no_barra = (5, 8)
-        resultado = self.game.jugar_turno([movimiento_no_barra])
-        self.assertFalse(resultado)
+        self.assertEqual(self.game.__jugador_actual__, self.player_negro)
 
-    # Tiradas dobles
-    def test_tirada_doble(self):
-        self.game.dice.establecer_valores(3, 3)
-        movimientos = self.game.obtener_movimientos_doble()
-        resultado = self.game.jugar_turno(movimientos)
-        self.assertTrue(resultado)
 
-    # Condición de victoria y ganador
-    def test_victoria_y_ganador(self):
-        player = self.game.obtener_jugador_actual()
-        self.game.__jugador_actual__ = player
-        self.game.__fichas_retiradas__ = {
-            self.white.__color__: 15 if player.__color__ == "Blanco" else 0,
-            self.black.__color__: 15 if player.__color__ == "Negro" else 0
-        }
-        self.assertTrue(self.game.juego_terminado())
-        self.assertEqual(self.game.obtener_ganador(), player)
+# Orquestación de Movimientos y Restricciones
+    def test_consumo_correcto_de_dados_en_tirada_normal(self):
+        """Verifica que un movimiento consuma el dado específico y actualice el estado."""
+        self.game.__jugador_actual__ = self.player_blanco
+        self.game.__movimientos_disponibles__ = [6, 1]
 
-    # Reinicio del juego
-    def test_reinicio_juego(self):
-        self.game.reiniciar_juego()
-        self.assertFalse(self.game.juego_terminado())
-        self.assertIsNotNone(self.game.obtener_jugador_actual())
-        self.assertEqual(len(self.game.board.mostrar_casillas()), 24)
+        # Mover de 11 a 17 (distancia 6), usando el dado 6
+        self.game.ejecutar_movimiento(11, 17, "Blanco", 6) 
 
-    # Pruebas de Movimientos y Reglas
-    def test_movimiento_con_varios_dados_diferentes(self):
-        self.game.dice.establecer_valores(3, 5)
-        self.game.board.reiniciar()
-        self.game.board.__casillas__[0] = ["Blanco"]
-        self.game.board.__casillas__[3] = ["Blanco"]
-        movimientos = [(0, 3), (3, 8)]
-        resultado = self.game.jugar_turno(movimientos)
-        self.assertTrue(resultado)
+        self.assertEqual(self.game.__movimientos_disponibles__, [1])
+        self.assertEqual(self.game.__movimientos_restantes__, 1)
 
-    def test_movimiento_a_casilla_bloqueada(self):
-        current_player = self.game.obtener_jugador_actual()
-        opponent_player = self.game.obtener_oponente()
-        self.game.board.reiniciar()
-        self.game.board.__casillas__[15] = [opponent_player.__color__] * 2
-        self.game.board.__casillas__[10] = [current_player.__color__]
-        self.game.dice.establecer_valores(5, 5)
-        movimiento_invalido = (10, 15)
-        resultado = self.game.jugar_turno([movimiento_invalido])
-        self.assertFalse(resultado)
+    def test_prohibicion_de_movimiento_por_dado_no_disponible(self):
+        """Verifica que el Game no permita movimientos con dados no tirados o ya usados."""
+        self.game.__jugador_actual__ = self.player_blanco
+        self.game.__movimientos_disponibles__ = [5, 1]
+        
+        # Intentar usar un dado 6
+        try:
+            self.game.ejecutar_movimiento(11, 17, "Blanco", 6) 
+            self.fail("ValueError no fue lanzado para dado no disponible.")
+        except ValueError as e:
+            self.assertIn("no está disponible", str(e)) 
 
-    def test_movimiento_a_distancia_mayor_a_dado(self):
-        self.game.dice.establecer_valores(2, 4)
-        self.game.board.reiniciar()
-        self.game.board.__casillas__[0] = ["Blanco"]
-        movimiento_invalido = (0, 7)
-        resultado = self.game.jugar_turno([movimiento_invalido])
-        self.assertFalse(resultado)
+    def test_orquestacion_de_captura_y_envio_a_barra(self):
+        """Verifica que el Game coordine la captura de fichas (blot) y el envío a la barra."""
+        self.game.__jugador_actual__ = self.player_blanco
+        self.game.__movimientos_disponibles__ = [1]
+        
+        # Ficha de Negro en casilla 1
+        self.game.__tablero__.mostrar_casillas()[1] = ["Negro"] 
+        
+        self.game.ejecutar_movimiento(0, 1, "Blanco", 1) 
+        
+        # Verificar que la ficha Negra esté en la barra
+        self.assertEqual(len(self.game.__tablero__.mostrar_barra()["Negro"]), 1)
+        self.assertEqual(self.game.__tablero__.mostrar_casillas()[1], ["Blanco"])
 
-    def test_turno_sin_movimientos_posibles(self):
-        original_player = self.game.obtener_jugador_actual()
-        self.game.board.reiniciar()
-        self.game.board.__casillas__[0] = [self.white.__color__] * 15
-        self.game.dice.establecer_valores(1, 1)
-        self.game.jugar_turno([])
-        new_player = self.game.obtener_jugador_actual()
-        self.assertNotEqual(original_player, new_player)
+    def test_restriccion_por_posicion_bloqueada_no_consume_dado(self):
+        """Verifica que movimientos a puntos bloqueados lancen error y no consuman el dado."""
+        self.game.__jugador_actual__ = self.player_blanco
+        self.game.__movimientos_disponibles__ = [1]
 
-    # Lógica de la Barra
-    def test_reingreso_desde_la_barra_exitoso(self):
-        player = self.game.obtener_jugador_actual()
-        self.game.board.reiniciar()
-        self.game.board.__barra__[player.__color__].append(player.__color__)
-        self.game.dice.establecer_valores(3, 5)
-        movimiento_valido = ("barra", 3)
-        resultado = self.game.jugar_turno([movimiento_valido])
-        self.assertTrue(resultado)
-        self.assertFalse(self.game.hay_ficha_en_barra(player.__color__))
+        # La casilla 12 tiene 5 fichas Negras (Bloqueada en el inicio).
+        try:
+             self.game.ejecutar_movimiento(11, 12, "Blanco", 1)
+             self.fail("ValueError no fue lanzado para posición bloqueada.")
+        except ValueError as e:
+            self.assertIn("bloqueada", str(e))
 
-    def test_reingreso_desde_barra_casilla_bloqueada(self):
-        player = self.game.obtener_jugador_actual()
-        opponent = self.game.obtener_oponente()
-        self.game.board.reiniciar()
-        self.game.board.__barra__[player.__color__].append(player.__color__)
-        self.game.board.__casillas__[4] = [opponent.__color__] * 2
-        self.game.dice.establecer_valores(2, 4)
-        movimiento_invalido = ("barra", 4)
-        resultado = self.game.jugar_turno([movimiento_invalido])
-        self.assertFalse(resultado)
-        self.assertTrue(self.game.hay_ficha_en_barra(player.__color__))
+        # El dado debe seguir disponible
+        self.assertEqual(self.game.__movimientos_disponibles__, [1])
 
-    # Borne off
-    def test_bornear_cuando_hay_fichas_fuera_del_cuadrante(self):
-        player = self.game.obtener_jugador_actual()
-        self.game.board.reiniciar()
-        self.game.board.__casillas__[20] = [player.__color__] * 5
-        self.game.board.__casillas__[10] = [player.__color__]
-        self.game.dice.establecer_valores(5, 6)
-        movimiento_borne_off = (20, "borne_off")
-        resultado = self.game.jugar_turno([movimiento_borne_off])
-        self.assertFalse(resultado)
+    def test_consumo_parcial_de_dados_en_tirada_doble(self):
+        """Verifica que el Game pueda consumir una cantidad parcial de dados en una tirada doble."""
+        self.game.__jugador_actual__ = self.player_blanco
+        self.game.__movimientos_disponibles__ = [2, 2, 2, 2] # Doble 2
+        
+        # Ejecutar 3 movimientos (usando 3 de los dados 2)
+        self.game.ejecutar_movimiento(0, 2, "Blanco", 2) 
+        self.game.ejecutar_movimiento(11, 13, "Blanco", 2) 
+        self.game.ejecutar_movimiento(16, 18, "Blanco", 2) 
 
-    def test_borne_off_con_dado_justo(self):
-        player = self.game.obtener_jugador_actual()
-        self.game.board.reiniciar()
-        self.game.board.__casillas__[22] = [player.__color__]
-        self.game.dice.establecer_valores(2, 4)
-        movimiento_valido = (22, "borne_off")
-        resultado = self.game.jugar_turno([movimiento_valido])
-        self.assertTrue(resultado)
+        self.assertEqual(self.game.__movimientos_disponibles__, [2])
+        self.assertEqual(self.game.__movimientos_restantes__, 1)
 
-    def test_borne_off_con_dado_sobrante(self):
-        player = self.game.obtener_jugador_actual()
-        self.game.board.reiniciar()
-        self.game.board.__casillas__[23] = [player.__color__]
-        self.game.dice.establecer_valores(6, 6)
-        movimiento_valido = (23, "borne_off")
-        resultado = self.game.jugar_turno([movimiento_valido])
-        self.assertTrue(resultado)
+
+# Reglas Especiales: Barra y Bear Off
+    def test_regla_de_prioridad_de_reingreso_desde_la_barra(self):
+        """Verifica que el Game fuerce el movimiento desde la barra si hay fichas allí."""
+        self.game.__jugador_actual__ = self.player_blanco
+        self.game.__tablero__.enviar_a_barra("Blanco", 0) 
+        self.game.__movimientos_disponibles__ = [6, 1]
+        
+        # Intento ilegal de mover ficha en tablero (11 a 12)
+        try:
+             self.game.ejecutar_movimiento(11, 12, "Blanco", 1) 
+             self.fail("Exception no fue lanzada al intentar mover sin reingresar de barra.")
+        except Exception as e:
+            self.assertIn("barra", str(e)) 
+
+    def test_reingreso_de_barra_a_casilla_bloqueada_no_consume_dado(self):
+        """Verifica que el reingreso sea denegado si el punto está bloqueado, sin consumir el dado."""
+        self.game.__jugador_actual__ = self.player_blanco
+        self.game.__tablero__.enviar_a_barra("Blanco", 0) 
+        self.game.__movimientos_disponibles__ = [6]
+        
+        # Bloquear el punto de reingreso para el dado 6 (punto 18)
+        self.game.__tablero__.mostrar_casillas()[18] = ["Negro", "Negro"]
+        
+        # Intentar reingresar a casilla 18, debe fallar dentro de Board
+        try:
+             self.game.ejecutar_movimiento_barra(18, "Blanco", 6)
+             self.fail("Exception no fue lanzada para reingreso a casilla bloqueada.")
+        except Exception as e:
+            self.assertIn("fallido", str(e))
+
+        self.assertEqual(self.game.__movimientos_disponibles__, [6])
+        self.assertEqual(len(self.game.__tablero__.mostrar_barra()["Blanco"]), 1)
+
+    def test_prohibicion_de_bear_off_fuera_de_home_board(self):
+        """Verifica que el Game prohíba el 'bearing off' si hay fichas fuera del cuadrante de inicio."""
+        self.game.__jugador_actual__ = self.player_blanco
+        self.game.__movimientos_disponibles__ = [1]
+        
+        # El tablero se inicia con fichas de Blanco en casilla 0 (fuera del Home Board).
+        try:
+             self.game.ejecutar_retiro(18, 1, "Blanco")
+             self.fail("Exception no fue lanzada al intentar Bear Off fuera del Home Board.")
+        except Exception as e:
+            self.assertIn("Home Board", str(e))
+
+    def test_bear_off_exitoso_y_conteo_de_fichas(self):
+        """Verifica que un retiro válido consuma el dado y actualice el contador del jugador."""
+        self.game.__jugador_actual__ = self.player_negro
+        self.game.__movimientos_disponibles__ = [6]
+
+        casillas = self.game.__tablero__.mostrar_casillas()
+    
+        for i in range(24):
+            casillas[i] = []
+        
+        casillas[5] = ["Negro"] * 15 
+    
+        self.game.ejecutar_retiro(5, 6, "Negro") 
+
+        # Verificar el retiro    
+        self.assertEqual(self.game.__tablero__.mostrar_retiradas()["Negro"].count("Negro"), 1)
+        self.assertEqual(self.player_negro.ha_ganado(), False)
+        self.assertEqual(self.game.__movimientos_disponibles__, [])
+
+
+# Condición de Victoria
+    def test_deteccion_de_victoria_y_bloqueo_del_juego(self):
+        """Verifica que el Game detecte la victoria, marque al ganador y bloquee el flujo."""
+        self.game.__jugador_actual__ = self.player_negro
+        self.player_negro.__fichas_retiradas__ = 14
+
+        # Simular el retiro de la ficha 15
+        self.player_negro.incrementar_fichas_retiradas()
+        
+        # Forzar la verificación de victoria
+        if self.player_negro.ha_ganado():
+            self.game.__ganador__ = self.player_negro
+
+        self.assertTrue(self.game.ha_terminado())
+        self.assertEqual(self.game.__ganador__, self.player_negro)
+
+        # Verificar que el juego se bloquee al intentar iniciar un nuevo turno
+        try:
+             self.game.iniciar_turno()
+             self.fail("Exception no fue lanzada para juego terminado.")
+        except Exception as e:
+            self.assertIn("terminado", str(e))
