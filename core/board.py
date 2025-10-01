@@ -56,6 +56,8 @@ class Board:
         if destino < 0 or destino > 23:
             return False
         if self.__barra__[color]:
+            if len(self.__casillas__[destino]) >= 2 and self.__casillas__[destino][0] != color:
+                return False
             self.__barra__[color].pop()
             self.__casillas__[destino].append(color)
             return True
