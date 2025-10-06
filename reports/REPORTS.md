@@ -4,7 +4,6 @@
 ```text
 Name                     Stmts   Miss  Cover   Missing
 ------------------------------------------------------
-core/__init__.py             0      0   100%
 core/backgammongame.py      87      0   100%
 core/board.py               63      0   100%
 core/checker.py              9      0   100%
