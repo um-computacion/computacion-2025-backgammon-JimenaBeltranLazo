@@ -33,11 +33,12 @@ class TestBoard(unittest.TestCase):
     # Movimiento de Fichas
     def test_mover_ficha_valida(self):
         # Mover ficha válida actualiza las casillas
-        self.board.__casillas__[0] = ["Blanco"]
-        self.board.__casillas__[1] = []
+        self.board.mostrar_casillas()[0].clear()
+        self.board.mostrar_casillas()[0].append("Blanco")
+        self.board.mostrar_casillas()[1].clear()
         self.board.mover_ficha(0, 1, "Blanco")
-        self.assertIn("Blanco", self.board.__casillas__[1])
-        self.assertNotIn("Blanco", self.board.__casillas__[0])
+        self.assertIn("Blanco", self.board.mostrar_casillas()[1])
+        self.assertNotIn("Blanco", self.board.mostrar_casillas()[0])
 
     def test_mover_ficha_invalida(self):
         # No se puede mover si no es legal
@@ -46,47 +47,51 @@ class TestBoard(unittest.TestCase):
 
     def test_mover_ficha_con_captura(self):
         # Si hay una ficha enemiga sola, debe ir a la barra
-        self.board.__casillas__[0] = ["Blanco"]
-        self.board.__casillas__[1] = ["Negro"]
+        self.board.mostrar_casillas()[0].clear()
+        self.board.mostrar_casillas()[0].append("Blanco")
+        self.board.mostrar_casillas()[1].clear()
+        self.board.mostrar_casillas()[1].append("Negro")
         self.board.mover_ficha(0, 1, "Blanco")
-        self.assertIn("Blanco", self.board.__casillas__[1])
-        self.assertIn("Negro", self.board.__barra__["Negro"])
+        self.assertIn("Blanco", self.board.mostrar_casillas()[1])
+        self.assertIn("Negro", self.board.mostrar_barra()["Negro"])
 
     def test_mover_ficha_a_casilla_bloqueada(self):
-        self.board.__casillas__[0] = ["Blanco"]
-        self.board.__casillas__[1] = ["Negro", "Negro"]
+        self.board.mostrar_casillas()[0].clear()
+        self.board.mostrar_casillas()[0].append("Blanco")
+        self.board.mostrar_casillas()[1].clear()
+        self.board.mostrar_casillas()[1].extend(["Negro", "Negro"])
         with self.assertRaises(ValueError):
             self.board.mover_ficha(0, 1, "Blanco")
 
     # Barra
     def test_enviar_a_barra_valido(self):
         # Enviar ficha a la barra cuando el color coincide
-        self.board.__casillas__[0] = ["Blanco"]
+        self.board.mostrar_casillas()[0].clear()
+        self.board.mostrar_casillas()[0].append("Blanco")
         resultado = self.board.enviar_a_barra("Blanco", 0)
         self.assertTrue(resultado)
-        self.assertIn("Blanco", self.board.__barra__["Blanco"])
-        self.assertEqual(self.board.__casillas__[0], [])
+        self.assertIn("Blanco", self.board.mostrar_barra()["Blanco"])
+        self.assertEqual(self.board.mostrar_casillas()[0], [])
 
     def test_enviar_a_barra_invalido(self):
         # No debe enviar a barra si la casilla está vacía o el color es incorrecto
-        self.board.__casillas__[0] = []
+        self.board.mostrar_casillas()[0].clear()
         self.assertFalse(self.board.enviar_a_barra("Blanco", 0))
-        self.board.__casillas__[0] = ["Negro"]
+        self.board.mostrar_casillas()[0].append("Negro")
         self.assertFalse(self.board.enviar_a_barra("Blanco", 0))
 
     def test_enviar_a_barra_fuera_de_rango(self):
-        resultado = self.board.enviar_a_barra("Blanco", -1)
-        self.assertFalse(resultado)
-        resultado = self.board.enviar_a_barra("Blanco", 24)
-        self.assertFalse(resultado)
+        self.assertFalse(self.board.enviar_a_barra("Blanco", -1))
+        self.assertFalse(self.board.enviar_a_barra("Blanco", 24))
 
     def test_mover_desde_barra_valido(self):
         # Mover ficha desde barra a casilla vacía
-        self.board.__barra__["Blanco"].append("Blanco")
+        self.board.mostrar_barra()["Blanco"].append("Blanco")
+        self.board.mostrar_casillas()[2].clear()
         resultado = self.board.mover_desde_barra("Blanco", 2)
         self.assertTrue(resultado)
-        self.assertIn("Blanco", self.board.__casillas__[2])
-        self.assertEqual(self.board.__barra__["Blanco"], [])
+        self.assertIn("Blanco", self.board.mostrar_casillas()[2])
+        self.assertEqual(self.board.mostrar_barra()["Blanco"], [])
 
     def test_mover_desde_barra_invalido(self):
         # No se mueve desde barra si está vacía
@@ -94,19 +99,18 @@ class TestBoard(unittest.TestCase):
         self.assertFalse(resultado)
 
     def test_mover_desde_barra_fuera_de_rango(self):
-        self.board.__barra__["Blanco"].append("Blanco")
-        resultado = self.board.mover_desde_barra("Blanco", -1)
-        self.assertFalse(resultado)
-        resultado = self.board.mover_desde_barra("Blanco", 24)
-        self.assertFalse(resultado)
+        self.board.mostrar_barra()["Blanco"].append("Blanco")
+        self.assertFalse(self.board.mover_desde_barra("Blanco", -1))
+        self.assertFalse(self.board.mover_desde_barra("Blanco", 24))
 
     # Fichas Retiradas
     def test_retirar_ficha_valida(self):
         # Retirar ficha válida la mueve a retiradas
-        self.board.__casillas__[23] = ["Negro"]
+        self.board.mostrar_casillas()[23].clear()
+        self.board.mostrar_casillas()[23].append("Negro")
         self.board.retirar_ficha(23, "Negro")
-        self.assertIn("Negro", self.board.__fichas_retiradas__["Negro"])
-        self.assertEqual(self.board.__casillas__[23], [])
+        self.assertIn("Negro", self.board.mostrar_retiradas()["Negro"])
+        self.assertEqual(self.board.mostrar_casillas()[23], [])
 
     def test_retirar_ficha_invalida(self):
         # No se puede retirar ficha si la casilla está vacía o el color es distinto
@@ -122,8 +126,8 @@ class TestBoard(unittest.TestCase):
     # Reinicio
     def test_reiniciar_tablero(self):
        # Tablero vuelve al estado inicial
-        self.board.__casillas__[0] = []
-        self.board.__barra__["Blanco"].append("Blanco")
+        self.board.mostrar_casillas()[0].clear()
+        self.board.mostrar_barra()["Blanco"].append("Blanco")
         self.board.reiniciar()
-        self.assertEqual(self.board.__casillas__[0], ["Blanco", "Blanco"])
-        self.assertEqual(self.board.__barra__, {"Blanco": [], "Negro": []})
+        self.assertEqual(self.board.mostrar_casillas()[0], ["Blanco", "Blanco"])
+        self.assertEqual(self.board.mostrar_barra(), {"Blanco": [], "Negro": []})
