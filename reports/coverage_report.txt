@@ -1,9 +1,9 @@
 Name                     Stmts   Miss  Cover   Missing
 ------------------------------------------------------
-core/backgammongame.py      87      0   100%
-core/board.py               63      0   100%
+core/backgammongame.py     102      0   100%
+core/board.py               93      0   100%
 core/checker.py              9      0   100%
-core/dice.py                18      0   100%
+core/dice.py                24      0   100%
 core/player.py              18      0   100%
 ------------------------------------------------------
-TOTAL                      195      0   100%
+TOTAL                      246      0   100%
