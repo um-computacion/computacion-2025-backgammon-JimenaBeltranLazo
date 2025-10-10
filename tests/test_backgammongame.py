@@ -1,8 +1,8 @@
 import unittest
 from core.board import Board
-from core.dice import Dice
+from core.dice import Dice, DiceGameLogic
 from core.player import Player
-from core.backgammongame import BackgammonGame 
+from core.backgammongame import BackgammonGame, TurnManager, MoveManager
 
 class TestBackgammonGame(unittest.TestCase):
 
@@ -11,15 +11,18 @@ class TestBackgammonGame(unittest.TestCase):
         self.player_negro = Player("Negro", "Jugador B")
         self.board = Board()
         self.dice = Dice()
+        self.dice_logic = DiceGameLogic(self.dice)
+        self.turn_manager = TurnManager(self.player_blanco, self.player_negro)
+        self.move_manager = MoveManager(self.board)
         # Inicialización del juego
-        self.game = BackgammonGame(self.board, self.dice, self.player_blanco, self.player_negro)
+        self.game = BackgammonGame(self.player_blanco, self.player_negro, self.turn_manager, self.move_manager, self.dice_logic)
 
 
 # Inicialización y Gestión de Turnos
     def test_configuracion_inicial_del_tablero(self):
         """Verifica que el Game se inicie con el tablero en la configuración estándar."""
-        self.assertEqual(len(self.game.__tablero__.mostrar_casillas()[0]), 2)
-        self.assertTrue(self.game.__tablero__.mostrar_barra()["Blanco"] == [])
+        self.assertEqual(len(self.board.mostrar_casillas()[0]), 2)
+        self.assertTrue(self.board.mostrar_barra()["Blanco"] == [])
 
     def test_determinar_primer_jugador_por_dado_alto(self):
         """Verifica que el Game asigne el turno al jugador con el dado más alto."""
@@ -40,7 +43,7 @@ class TestBackgammonGame(unittest.TestCase):
 
     def test_determinar_primer_turno_blanco_gana(self):
         """Si Blanco obtiene un valor más alto en la tirada inicial, debe iniciar."""
-        self.game.__turnos__.__primer_turno_determinado__ = False
+        self.game.__turnos__.__turno_determinado__ = False
         self.game.__turnos__.__tiradas_iniciales__ = {}
         self.dice.establecer_valores(5, 0)
         self.game.determinar_primer_turno()  # Blanco tira
@@ -50,7 +53,7 @@ class TestBackgammonGame(unittest.TestCase):
 
     def test_determinar_primer_jugador_gana_negro(self):
         """Si Negro obtiene un valor más alto en la tirada inicial, debe iniciar."""
-        self.game.__turnos__.__primer_turno_determinado__ = False
+        self.game.__turnos__.__turno_determinado__ = False
         self.game.__turnos__.__tiradas_iniciales__ = {}
         self.dice.establecer_valores(2, 0)
         self.game.determinar_primer_turno()  # Blanco tira
@@ -104,14 +107,14 @@ class TestBackgammonGame(unittest.TestCase):
     def test_movimiento_fallido_no_consumir_dado_actualiza_restantes(self):
         self.game.__turnos__.__jugador_actual__ = self.player_blanco
         self.game.__movimientos__.__movimientos_disponibles__ = [1]
-        self.game.__tablero__.mostrar_casillas()[0] = ["Blanco"]
-        self.game.__tablero__.mostrar_casillas()[1] = ["Negro", "Negro"]  # bloqueado
-        movimientos_restantes_antes = self.game.__movimientos__.__movimientos_restantes__
+        self.board.mostrar_casillas()[0] = ["Blanco"]
+        self.board.mostrar_casillas()[1] = ["Negro", "Negro"]  # bloqueado
+        __movimientos_restantes___antes = self.game.__movimientos__.__movimientos_restantes__
         try:
             self.game.ejecutar_movimiento(0, 1, "Blanco", 1)
         except ValueError:
             pass
-        self.assertEqual(self.game.__movimientos__.__movimientos_restantes__, movimientos_restantes_antes)
+        self.assertEqual(self.game.__movimientos__.__movimientos_restantes__, __movimientos_restantes___antes)
 
     def test_error_juego_terminado_en_ejecucion_de_movimiento(self):
         """No debe permitirse ejecutar un movimiento si el juego ya terminó."""
@@ -139,11 +142,11 @@ class TestBackgammonGame(unittest.TestCase):
         self.game.__turnos__.__jugador_actual__ = self.player_blanco
         self.game.__movimientos__.__movimientos_disponibles__ = [1] 
         # Ficha de Negro en casilla 1
-        self.game.__tablero__.mostrar_casillas()[1] = ["Negro"] 
+        self.board.mostrar_casillas()[1] = ["Negro"] 
         self.game.ejecutar_movimiento(0, 1, "Blanco", 1) 
         # Verificar que la ficha Negra esté en la barra
-        self.assertEqual(len(self.game.__tablero__.mostrar_barra()["Negro"]), 1)
-        self.assertEqual(self.game.__tablero__.mostrar_casillas()[1], ["Blanco"])
+        self.assertEqual(len(self.board.mostrar_barra()["Negro"]), 1)
+        self.assertEqual(self.board.mostrar_casillas()[1], ["Blanco"])
 
     def test_restriccion_por_posicion_bloqueada_no_consume_dado(self):
         """Verifica que movimientos a puntos bloqueados lancen error y no consuman el dado."""
@@ -174,7 +177,7 @@ class TestBackgammonGame(unittest.TestCase):
     def test_regla_de_prioridad_de_reingreso_desde_la_barra(self):
         """Verifica que el Game fuerce el movimiento desde la barra si hay fichas allí."""
         self.game.__turnos__.__jugador_actual__ = self.player_blanco
-        self.game.__tablero__.enviar_a_barra("Blanco", 0) 
+        self.board.enviar_a_barra("Blanco", 0) 
         self.game.__movimientos__.__movimientos_disponibles__ = [6, 1]
         # Intento ilegal de mover ficha en tablero (11 a 12)
         try:
@@ -186,10 +189,10 @@ class TestBackgammonGame(unittest.TestCase):
     def test_reingreso_de_barra_a_casilla_bloqueada_no_consume_dado(self):
         """Verifica que el reingreso sea denegado si el punto está bloqueado, sin consumir el dado."""
         self.game.__turnos__.__jugador_actual__ = self.player_blanco
-        self.game.__tablero__.enviar_a_barra("Blanco", 0) 
+        self.board.enviar_a_barra("Blanco", 0) 
         self.game.__movimientos__.__movimientos_disponibles__ = [6]
         # Bloquear el punto de reingreso para el dado 6 (punto 18)
-        self.game.__tablero__.mostrar_casillas()[18] = ["Negro", "Negro"]
+        self.board.mostrar_casillas()[18] = ["Negro", "Negro"]
         # Intentar reingresar a casilla 18, debe fallar dentro de Board
         try:
              self.game.ejecutar_movimiento_barra(18, "Blanco", 6)
@@ -197,14 +200,14 @@ class TestBackgammonGame(unittest.TestCase):
         except Exception as e:
             self.assertIn("fallido", str(e))
         self.assertEqual(self.game.__movimientos__.__movimientos_disponibles__, [6])
-        self.assertEqual(len(self.game.__tablero__.mostrar_barra()["Blanco"]), 1)
+        self.assertEqual(len(self.board.mostrar_barra()["Blanco"]), 1)
 
     def test_movimiento_barra_exitoso(self):
         self.game.__turnos__.__jugador_actual__ = self.player_blanco
         self.game.__movimientos__.__movimientos_disponibles__ = [6]
-        self.game.__tablero__.enviar_a_barra("Blanco", 0)
+        self.board.enviar_a_barra("Blanco", 0)
         # Forzar mover_desde_barra a True
-        self.game.__tablero__.mover_desde_barra = lambda color, dest: True
+        self.board.mover_desde_barra = lambda color, dest: True
         self.game.ejecutar_movimiento_barra(5, "Blanco", 6)
         self.assertEqual(self.game.__movimientos__.__movimientos_disponibles__, [])
         self.assertEqual(self.game.__movimientos__.__movimientos_restantes__, 0)
@@ -212,18 +215,18 @@ class TestBackgammonGame(unittest.TestCase):
     def test_error_movimiento_barra_fallido(self):
         """Debe lanzar error si el movimiento desde barra falla."""
         self.game.__turnos__.__jugador_actual__ = self.player_blanco
-        self.game.__tablero__.__barra__.__barra__["Blanco"].append("Blanco")
+        self.board.__barra__.__barra__["Blanco"].append("Blanco")
         self.game.__movimientos__.__movimientos_disponibles__ = [6]
         # Forzar que el método falle
-        original = self.game.__tablero__.mover_desde_barra
-        self.game.__tablero__.mover_desde_barra = lambda c, d: False
+        original = self.board.mover_desde_barra
+        self.board.mover_desde_barra = lambda c, d: False
         try:
             self.game.ejecutar_movimiento_barra(5, "Blanco", 6)
             self.fail("Exception no fue lanzada para movimiento fallido desde barra.")
         except Exception as e:
             self.assertIn("fallido", str(e))
         finally:
-            self.game.__tablero__.mover_desde_barra = original
+            self.board.mover_desde_barra = original
 
     def test_error_juego_terminado_en_movimiento_barra(self):
         """No debe permitirse reingreso desde la barra si el juego ya terminó."""
@@ -250,7 +253,7 @@ class TestBackgammonGame(unittest.TestCase):
         """No debe permitirse mover desde barra si no es el turno de ese color."""
         self.game.__turnos__.__jugador_actual__ = self.player_blanco
         self.game.__movimientos__.__movimientos_disponibles__ = [6]
-        self.game.__tablero__.enviar_a_barra("Negro", 0)  # ficha negra en barra
+        self.board.enviar_a_barra("Negro", 0)  # ficha negra en barra
         try:
             self.game.ejecutar_movimiento_barra(1, "Negro", 6)
             self.fail("ValueError no fue lanzado para color incorrecto en barra.")
@@ -261,7 +264,7 @@ class TestBackgammonGame(unittest.TestCase):
         """Debe lanzar error si se intenta reingresar con un dado no disponible."""
         self.game.__turnos__.__jugador_actual__ = self.player_blanco
         self.game.__movimientos__.__movimientos_disponibles__ = [3]  # dado 6 no está disponible
-        self.game.__tablero__.enviar_a_barra("Blanco", 0)
+        self.board.enviar_a_barra("Blanco", 0)
         try:
             self.game.ejecutar_movimiento_barra(1, "Blanco", 6)
             self.fail("ValueError no fue lanzado para dado no disponible en barra.")
@@ -272,14 +275,14 @@ class TestBackgammonGame(unittest.TestCase):
         """Debe lanzar error si Board devuelve False en mover_desde_barra."""
         self.game.__turnos__.__jugador_actual__ = self.player_blanco
         self.game.__movimientos__.__movimientos_disponibles__ = [6]
-        self.game.__tablero__.enviar_a_barra("Blanco", 0)
+        self.board.enviar_a_barra("Blanco", 0)
         # Forzar fallo
-        self.game.__tablero__.mover_desde_barra = lambda c, d: False
+        self.board.mover_desde_barra = lambda c, d: False
         try:
             self.game.ejecutar_movimiento_barra(1, "Blanco", 6)
             self.fail("Exception no fue lanzada para movimiento fallido desde barra.")
         except Exception as e:
-            self.assertIn("Movimiento fallido", str(e))
+            self.assertIn("Movimiento de barra fallido", str(e))
 
     def test_prohibicion_de_bear_off_fuera_de_home_board(self):
         """Verifica que el Game prohíba el 'bearing off' si hay fichas fuera del cuadrante de inicio."""
@@ -298,7 +301,7 @@ class TestBackgammonGame(unittest.TestCase):
         self.game.__movimientos__.__movimientos_disponibles__ = [6]
         # Vaciar todas las casillas para asegurar que no hay fichas fuera del Home Board
         for i in range(24):
-            self.game.__tablero__.mostrar_casillas()[i] = []
+            self.board.mostrar_casillas()[i] = []
         # Intentar retirar desde la casilla 23 (parte del Home Board), estando vacía
         try:
             self.game.ejecutar_retiro(23, 6, "Blanco")
@@ -310,13 +313,13 @@ class TestBackgammonGame(unittest.TestCase):
         """Verifica que un retiro válido consuma el dado y actualice el contador del jugador."""
         self.game.__turnos__.__jugador_actual__ = self.player_negro
         self.game.__movimientos__.__movimientos_disponibles__ = [6]
-        casillas = self.game.__tablero__.mostrar_casillas()
+        casillas = self.board.mostrar_casillas()
         for i in range(24):
             casillas[i] = []
         casillas[5] = ["Negro"] * 15 
         self.game.ejecutar_retiro(5, 6, "Negro")
         # Verificar el retiro    
-        self.assertEqual(self.game.__tablero__.mostrar_retiradas()["Negro"].count("Negro"), 1)
+        self.assertEqual(self.board.mostrar_retiradas()["Negro"].count("Negro"), 1)
         self.assertEqual(self.player_negro.ha_ganado(), False)
         self.assertEqual(self.game.__movimientos__.__movimientos_disponibles__, [])
 
@@ -347,9 +350,9 @@ class TestBackgammonGame(unittest.TestCase):
         self.game.__movimientos__.__movimientos_disponibles__ = [3]  # dado 6 no está disponible
         # Vaciar todas las casillas para asegurar que no hay fichas fuera del Home Board
         for i in range(24):
-            self.game.__tablero__.mostrar_casillas()[i] = []
+            self.board.mostrar_casillas()[i] = []
         # Poner una ficha en el Home Board
-        self.game.__tablero__.mostrar_casillas()[23] = ["Blanco"]
+        self.board.mostrar_casillas()[23] = ["Blanco"]
         try:
             self.game.ejecutar_retiro(23, 6, "Blanco")  # usar dado 6
             self.fail("ValueError no fue lanzado para dado no disponible en retiro.")
@@ -363,8 +366,8 @@ class TestBackgammonGame(unittest.TestCase):
         self.player_negro.__fichas_retiradas__ = 14
         # Vaciar tablero y dejar solo una ficha en home
         for i in range(24):
-            self.game.__tablero__.mostrar_casillas()[i] = []
-        self.game.__tablero__.mostrar_casillas()[5] = ["Negro"]
+            self.board.mostrar_casillas()[i] = []
+        self.board.mostrar_casillas()[5] = ["Negro"]
         self.game.ejecutar_retiro(5, 6, "Negro")
         self.assertTrue(self.game.ha_terminado())
         self.assertEqual(self.game.__ganador__, self.player_negro)
