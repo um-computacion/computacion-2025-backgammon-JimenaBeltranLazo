@@ -794,3 +794,56 @@ Respuesta:
       self.assertFalse(self.game.ha_terminado())
    ```
 Salida: El código fue incorporado en el archivo `tests/test_backgammongame.py`. No se realizó ninguna modificación.
+
+## 🔧 Principios SOLID
+
+### Kilo Code 09/10/2025
+
+Prompt: Acabo de refactorizar la clase BackgammonGame para que cumpla con los principios SOLID. Al correr los tests y el coverage me saltaron muchos errores en el archivo test_backgammongame.py. Podrías corregirlo?
+
+Nota
+* Quiero que me corrijas el archivo de test_backgammongame
+* No uses mocks
+* No uses helpers
+* Respeta el doble guion para los atributos (Ej. __game__)
+* En la clase Dice y Board tambien se realizaron modificaciones para que se cumplan los principios SOLID, por lo tanto hay clases nuevas dentro de los archivos dice.py y board.py, por si necesitas importar algo nuevo de esos archivos.
+
+```bash
+   ----------------------------------------------------------------------
+   Ran 65 tests in 0.077s
+
+   FAILED (failures=7, errors=21)
+   Name                     Stmts   Miss  Cover   Missing
+   ------------------------------------------------------
+   core\backgammongame.py      98     30    69%   23, 39, 42-45, 51-54, 57-61, 65-70, 99-100, 106-107, 113-117
+   core\board.py               93      1    99%   99
+   core\checker.py              9      0   100%
+   core\dice.py                24      0   100%
+   core\player.py              18      0   100%
+   ------------------------------------------------------
+   TOTAL                      242     31    87%
+```
+
+Respuesta: ◎ **Thinking**
+
+*First, the user wants me to fix the test file test_backgammongame.py because after refactoring BackgammonGame to follow SOLID principles, the tests are failing. There are also changes in Dice and Board classes, with new classes in dice.py and board.py.*
+
+***Examining user request***
+- *The user needs help fixing the test_backgammongame.py file after refactoring BackgammonGame to align with SOLID principles.*
+
+✓ **Task Completed**
+
+I've successfully corrected the `test_backgammongame.py` file to work with the refactored BackgammonGame class that follows SOLID principles. Here's a summary of the changes made:
+
+Key Updates:
+- Turn Management: Updated all `__jugador_actual__`, `__primer_turno_determinado__`, and `__tiradas_iniciales__` accesses to go through the new `TurnManager` instance (`self.game.__turnos__.*`).
+- Move Management: Updated all `__movimientos_disponibles__` and `__movimientos_restantes__` accesses to go through the new `MoveManager` instance (`self.game.__movimientos__.*`).
+- Bar Access: Updated direct accesses to the bar dictionary to go through the new `BarManager` structure (`self.game.__tablero__.__barra__.__barra__`).
+- Test Fix: Modified `test_error_dado_no_disponible_en_retiro` to clear the board and place a test piece in the home board, ensuring the test checks for unavailable dice rather than home board restrictions.
+
+Results:
+
+All 34 tests now pass successfully, confirming that the test suite correctly validates the refactored game's functionality while adhering to the constraints (no properties, no mocks, no helpers, and respecting double underscores for attributes).
+---
+
+Salida: El archivo `test_backgammongame.py` fue modificado automáticamente por la IA. Los cambios principales que realizó fueron reemplazar `self.game.__jugador_actual__` por `self.game.__turnos__.__jugador_actual__`, ya que la gestión de turnos le corresponde a `TurnManager`. También hizo algo similar con los movimientos, cambiando `self.game.__movimientos_restantes__` por `self.game.__movimientos__.__movimientos_restantes__`. Y corrigió el test `test_error_dado_no_disponible_en_retiro` para que pudiera ejecutarse correctamente.
