@@ -22,11 +22,11 @@ class TestCLI(unittest.TestCase):
     # Inicialización
     def test_inicializacion_cli(self):
         """Verifica que la CLI se inicialice correctamente con el juego."""
-        self.assertIsNotNone(self.cli.juego)
-        self.assertEqual(self.cli.juego, self.juego)
+        self.assertIsNotNone(self.cli.__juego__)
+        self.assertEqual(self.cli.__juego__, self.juego)
 
 
-    # Mostrar información
+    # Mostrar Información
     def test_mostrar_tablero_inicial(self):
         """Verifica que la CLI muestre correctamente el tablero inicial en formato texto."""
         salida = self.cli.mostrar_tablero()
@@ -69,12 +69,13 @@ class TestCLI(unittest.TestCase):
 
     def test_mostrar_fichas_retiradas(self):
         """Verifica que la CLI muestre las fichas retiradas de cada jugador."""
-        self.jugador_blanco.incrementar_fichas_retiradas()
+        # Simular retiro en el tablero
+        self.tablero.mostrar_retiradas()["Blanco"].append("Blanco")
         salida = self.cli.mostrar_fichas_retiradas()
         self.assertIn("Retiradas: Blanco: 1, Negro: 0", salida)
 
 
-    # Procesar y Validar eEntradas
+    # Procesar y Validar Entradas
     def test_procesar_comando_movimiento_valido(self):
         """Verifica que la CLI procese correctamente un comando de movimiento válido."""
         comando = self.cli.procesar_comando("mover 1 a 4")
@@ -134,9 +135,10 @@ class TestCLI(unittest.TestCase):
             self.cli.procesar_comando("mover 25 a 26")
             self.fail("ValueError no fue lanzado para números fuera de rango.")
         except ValueError as e:
-            self.assertIn("fuera de rango", str(e))
+            self.assertIn("Número fuera de rango", str(e))
 
-    # Comandos especiales y flujo
+
+    # Comandos Especiales y Flujo
     def test_comando_ayuda_muestra_ayuda(self):
         """Verifica que el comando 'ayuda' muestre una lista de comandos disponibles."""
         salida = self.cli.ejecutar_comando("ayuda")
@@ -179,7 +181,7 @@ class TestCLI(unittest.TestCase):
     def test_mostrar_historial_movimientos(self):
         """Verifica que la CLI muestre un historial de movimientos realizados."""
         # Asumiendo que la CLI tiene un historial
-        self.cli.historial.append("Movimiento: Blanco movió de 0 a 1")
+        self.cli.__historial__.append("Movimiento: Blanco movió de 0 a 1")
         salida = self.cli.mostrar_historial()
         self.assertIn("Movimiento: Blanco movió de 0 a 1", salida)
 
