@@ -238,7 +238,11 @@ class CLIGameExecutor: # Se encarga solo de ejecutar las acciones del juego seg�
             return f"🎲 ¡{nombre_jugador} tiró los dados! Salieron {d1} y {d2}. ¡Es tu turno!"
 
     def _mover_ficha(self, origen, destino):
+        if self.__juego__.ha_terminado():
+            raise Exception("Juego terminado")
         jugador = self.__juego__.obtener_jugador_actual()
+        if not jugador:
+            raise Exception("No hay jugador actual")
         color = jugador.obtener_color()
         nombre = jugador.obtener_nombre()
 
