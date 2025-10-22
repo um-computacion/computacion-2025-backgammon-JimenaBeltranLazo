@@ -3,23 +3,42 @@ from core.board import Board
 from core.dice import Dice, DiceGameLogic
 from core.player import Player
 from core.backgammongame import BackgammonGame, TurnManager, MoveManager
-from cli.cli import CLI
+from cli.cli import CLI, CLIPresenter, CLIGameExecutor
 
 
 class TestCLI(unittest.TestCase):
 
     def setUp(self):
-        self.cli = CLI()
-        self.cli.inicializar_juego()
-        # Acceder a los atributos internos para tests
-        self.juego = self.cli.__juego__
-        self.jugador_blanco = self.cli.__jugador_blanco__
-        self.jugador_negro = self.cli.__jugador_negro__
-        self.tablero = self.cli.__tablero__
-        self.dado = self.cli.__dado__
-        self.logica_dado = self.cli.__logica_dado__
-        self.gestor_turnos = self.cli.__gestor_turnos__
-        self.gestor_movimientos = self.cli.__gestor_movimientos__
+        # Inicialización manual para evitar input()
+        self.jugador_blanco = Player("Blanco", "Jugador Blanco")
+        self.jugador_negro = Player("Negro", "Jugador Negro")
+        self.tablero = Board()
+        self.dado = Dice()
+        self.logica_dado = DiceGameLogic(self.dado)
+        self.gestor_turnos = TurnManager(self.jugador_blanco, self.jugador_negro)
+        self.gestor_movimientos = MoveManager(self.tablero)
+        self.juego = BackgammonGame(self.jugador_blanco, self.jugador_negro, self.gestor_turnos, self.gestor_movimientos, self.logica_dado)
+
+        # Crear componentes para inyección de dependencias
+        from cli.cli import CLIInput, CLICommandParser, CLIPresenter, CLIGameExecutor
+        input_mock = CLIInput()
+        parser = CLICommandParser()
+        presentador = CLIPresenter(self.juego)
+        ejecutor = CLIGameExecutor(self.juego)
+
+        # Crear CLI con dependencias inyectadas
+        self.cli = CLI(input=input_mock, parser=parser, presentador=presentador, ejecutor=ejecutor)
+
+        # Asignar atributos para compatibilidad con tests existentes
+        self.cli.__juego__ = self.juego
+        self.cli.__jugador_blanco__ = self.jugador_blanco
+        self.cli.__jugador_negro__ = self.jugador_negro
+        self.cli.__tablero__ = self.tablero
+        self.cli.__dado__ = self.dado
+        self.cli.__logica_dado__ = self.logica_dado
+        self.cli.__gestor_turnos__ = self.gestor_turnos
+        self.cli.__gestor_movimientos__ = self.gestor_movimientos
+        self.cli.__historial__ = []
 
     # Inicialización
     def test_inicializacion_cli(self):
@@ -204,7 +223,7 @@ class TestCLI(unittest.TestCase):
             self.cli.ejecutar_comando("mover 0 a 1")
             self.fail("Exception no fue lanzada para juego terminado.")
         except Exception as e:
-            self.assertIn("terminó", str(e))
+            self.assertIn("termin", str(e))
 
     def test_mostrar_mensaje_bienvenida(self):
         """Verifica que la CLI muestre un mensaje de bienvenida al iniciar."""

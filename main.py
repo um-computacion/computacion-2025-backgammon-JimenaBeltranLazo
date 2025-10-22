@@ -1,26 +1,23 @@
-from cli.cli import CLI
+from cli.cli import CLI, CLICommandParser, CLIInput, CLIBuilder, CLIPresenter, CLIGameExecutor
 
 
 def main():
-    cli = CLI()
-    cli.configurar_jugadores()
-    cli.inicializar_juego()
+    # Instanciamos los componentes de bajo nivel.
+    parser_concreto = CLICommandParser()
+    input_concreto = CLIInput()
 
-    print(cli.mostrar_bienvenida())
+    # Creamos el builder y el juego
+    builder = CLIBuilder()
+    nombres = input_concreto.configurar_jugadores()
+    juego = builder.crear_juego(nombres)
 
-    while True:
-        try:
-            print(cli.mostrar_estado_turno())
-            print(cli.mostrar_tablero())
-            comando = input("Ingresa un comando (ayuda para ver opciones): ").strip()
-            resultado = cli.ejecutar_comando(comando)
-            if isinstance(resultado, str):
-                print(resultado)
-            elif resultado is True:
-                print("¡Hasta luego!")
-                break
-        except Exception as e:
-            print(f"Error: {e}")
+    # Creamos los componentes de presentación y ejecución
+    presentador = CLIPresenter(juego)
+    ejecutor = CLIGameExecutor(juego)
+
+    # Inyectamos las dependencias en CLI
+    app = CLI(input=input_concreto, parser=parser_concreto, presentador=presentador, ejecutor=ejecutor)
+    app.ejecutar()
 
 
 if __name__ == "__main__":

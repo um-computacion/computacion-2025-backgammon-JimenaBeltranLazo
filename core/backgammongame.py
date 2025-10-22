@@ -92,6 +92,21 @@ class BackgammonGame: # Coordina el juego completo
         dado_valor = self.__dice_logic__.__dice__.__dice1__
         self.__turnos__.determinar_primer_turno(dado_valor)
 
+    def tirar_dados_primer_turno(self):
+        """Método de alto nivel para tirar dados en el primer turno."""
+        self.__dice_logic__.__dice__.tirar_dados()
+        dado_blanco = self.__dice_logic__.__dice__.__dice1__
+        self.determinar_primer_turno()
+        self.__dice_logic__.__dice__.tirar_dados()
+        dado_negro = self.__dice_logic__.__dice__.__dice1__
+        self.determinar_primer_turno()
+        return dado_blanco, dado_negro
+
+    def tirar_dados_turno_actual(self):
+        """Método de alto nivel para tirar dados en turnos normales."""
+        self.__dice_logic__.__dice__.tirar_dados()
+        self.iniciar_turno()
+
     def iniciar_turno(self):
         if self.ha_terminado():
             raise Exception("¡El juego ha terminado!")
@@ -130,3 +145,34 @@ class BackgammonGame: # Coordina el juego completo
 
     def ha_terminado(self):
         return self.__ganador__ is not None
+
+    def obtener_jugador_actual(self):
+        return self.__turnos__.obtener_jugador_actual()
+
+    def obtener_jugador_por_color(self, color):
+        if color == "Blanco":
+            return self.__jugador_blanco__
+        elif color == "Negro":
+            return self.__jugador_negro__
+        return None
+
+    def obtener_valores_dados(self):
+        return self.__dice_logic__.__dice__.obtener_valores()
+
+    def obtener_dados_disponibles(self):
+        return self.__movimientos__.__movimientos_disponibles__
+
+    def movimientos_restantes_count(self):
+        return self.__movimientos__.movimientos_restantes_count()
+
+    def obtener_ganador(self):
+        return self.__ganador__
+
+    def obtener_estado_tablero(self):
+        return self.__movimientos__.tablero.mostrar_casillas()
+
+    def obtener_estado_barra(self):
+        return self.__movimientos__.tablero.mostrar_barra()
+
+    def obtener_estado_retiradas(self):
+        return self.__movimientos__.tablero.mostrar_retiradas()

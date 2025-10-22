@@ -103,7 +103,7 @@ class Board: # Coordina el tablero, la barra y aplica las reglas de movimiento
             self.__barra__.enviar_a_barra(ficha_capturada)
         ficha = self.__barra__.mover_desde_barra(color)
         if ficha:
-            self.__casillas__.mostrar()[destino].append(color)
+            self.__casillas__.mostrar()[destino].append(ficha)
             return True
         return False
 
