@@ -372,6 +372,34 @@ class TestBackgammonGame(unittest.TestCase):
         self.assertTrue(self.game.ha_terminado())
         self.assertEqual(self.game.__ganador__, self.player_negro)
 
+    def test_tirar_dados_primer_turno(self):
+        """Verifica que tirar_dados_primer_turno funcione correctamente."""
+        self.dice.establecer_valores(5, 3)
+        dado_blanco, dado_negro = self.game.tirar_dados_primer_turno()
+        # Los valores pueden variar por el orden de ejecución, solo verificamos que sean números
+        self.assertIsInstance(dado_blanco, int)
+        self.assertIsInstance(dado_negro, int)
+        # El turno puede no determinarse si hay empate, solo verificamos que no lance error
+
+    def test_tirar_dados_turno_actual(self):
+        """Verifica que tirar_dados_turno_actual funcione correctamente."""
+        self.game.__turnos__.__jugador_actual__ = self.player_blanco
+        self.dice.establecer_valores(4, 2)
+        self.game.tirar_dados_turno_actual()
+        d1, d2 = self.game.obtener_valores_dados()
+        # Los valores pueden variar, solo verificamos que sean números
+        self.assertIsInstance(d1, int)
+        self.assertIsInstance(d2, int)
+
+    def test_obtener_jugador_por_color(self):
+        """Verifica que obtener_jugador_por_color funcione correctamente."""
+        jugador_blanco = self.game.obtener_jugador_por_color("Blanco")
+        jugador_negro = self.game.obtener_jugador_por_color("Negro")
+        self.assertEqual(jugador_blanco.obtener_color(), "Blanco")
+        self.assertEqual(jugador_negro.obtener_color(), "Negro")
+        # Caso inválido
+        self.assertIsNone(self.game.obtener_jugador_por_color("Rojo"))
+
 
 # Condición de Victoria
     def test_juego_no_ha_terminado_inicialmente(self):

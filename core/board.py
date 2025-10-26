@@ -97,6 +97,10 @@ class Board: # Coordina el tablero, la barra y aplica las reglas de movimiento
             return False
         if self.__casillas__.casilla_bloqueada(destino, color):
             return False
+        # Captura si hay una sola ficha enemiga en el destino
+        if self.__casillas__.enemigo_solo_en_destino(destino, color):
+            ficha_capturada = self.__casillas__.capturar_en_destino(destino)
+            self.__barra__.enviar_a_barra(ficha_capturada)
         ficha = self.__barra__.mover_desde_barra(color)
         if ficha:
             self.__casillas__.mostrar()[destino].append(ficha)

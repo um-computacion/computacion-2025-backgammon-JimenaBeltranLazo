@@ -93,6 +93,26 @@ class TestBoard(unittest.TestCase):
         self.assertIn("Blanco", self.board.mostrar_casillas()[2])
         self.assertEqual(self.board.mostrar_barra()["Blanco"], [])
 
+    def test_mover_desde_barra_con_captura(self):
+        # Mover ficha desde barra capturando ficha enemiga sola
+        self.board.mostrar_barra()["Blanco"].append("Blanco")
+        self.board.mostrar_casillas()[2].clear()
+        self.board.mostrar_casillas()[2].append("Negro")
+        resultado = self.board.mover_desde_barra("Blanco", 2)
+        self.assertTrue(resultado)
+        self.assertIn("Blanco", self.board.mostrar_casillas()[2])
+        self.assertEqual(self.board.mostrar_barra()["Blanco"], [])
+        self.assertIn("Negro", self.board.mostrar_barra()["Negro"])
+
+    def test_mover_desde_barra_a_casilla_bloqueada(self):
+        # No se puede mover desde barra a casilla bloqueada
+        self.board.mostrar_barra()["Blanco"].append("Blanco")
+        self.board.mostrar_casillas()[2].clear()
+        self.board.mostrar_casillas()[2].extend(["Negro", "Negro"])
+        resultado = self.board.mover_desde_barra("Blanco", 2)
+        self.assertFalse(resultado)
+        self.assertEqual(self.board.mostrar_barra()["Blanco"], ["Blanco"])
+
     def test_mover_desde_barra_invalido(self):
         # No se mueve desde barra si está vacía
         resultado = self.board.mover_desde_barra("Negro", 3)
