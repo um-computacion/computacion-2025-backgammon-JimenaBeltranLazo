@@ -1,6 +1,46 @@
 import pygame
 import os
-import random
+import sys
+
+# Añadir la ruta del directorio raíz al sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from core.board import Board
+from core.dice import Dice, DiceGameLogic
+from core.player import Player
+from core.backgammongame import BackgammonGame, TurnManager, MoveManager
+
+class PygameBuilder:
+    """
+    Builder que encapsula la creación de una instancia de BackgammonGame
+    para la interfaz de Pygame.
+    """
+    def crear_juego(self, nombres: list[str]) -> BackgammonGame:
+        """
+        Crea y devuelve una instancia completamente funcional de BackgammonGame.
+
+        Args:
+            nombres (list[str]): Una lista con los nombres de los dos jugadores.
+                                 El primer nombre será para el jugador Blanco,
+                                 el segundo para el Negro.
+
+        Returns:
+            BackgammonGame: La instancia del juego lista para empezar.
+        """
+        # 1. Crear jugadores
+        jugador_blanco = Player(nombres[0], "Blanco")
+        jugador_negro = Player(nombres[1], "Negro")
+
+        # 2. Crear componentes del juego
+        tablero = Board()
+        dice_logic = DiceGameLogic(Dice())
+        turnos = TurnManager(jugador_blanco, jugador_negro)
+        movimientos = MoveManager(tablero)
+
+        # 3. Crear y devolver la instancia principal del juego
+        game = BackgammonGame(jugador_blanco, jugador_negro, turnos, movimientos, dice_logic)
+        
+        return game
 
 # --- Constantes ---
 
@@ -23,6 +63,7 @@ COLOR_BUTTON = (100, 100, 100)
 COLOR_BUTTON_HOVER = (130, 130, 130)
 COLOR_DICE = (240, 240, 240)
 COLOR_PIP = (10, 10, 10)
+COLOR_HIGHLIGHT = (255, 215, 0) # Dorado para resaltar
 
 # --- Dimensiones del Tablero ---
 MARGIN_TOP = 50
@@ -32,25 +73,13 @@ BOARD_HEIGHT = WINDOW_HEIGHT - MARGIN_TOP * 2
 BAR_WIDTH = 60
 # Con WINDOW_HEIGHT = 700, BOARD_HEIGHT es 600.
 # Mantenemos el mismo tamaño de triángulo para que las fichas quepan.
-TRIANGLE_HEIGHT = 250 
+TRIANGLE_HEIGHT = 250
 POINT_WIDTH = (BOARD_WIDTH - BAR_WIDTH) / 12
 # Con TRIANGLE_HEIGHT = 250, 5 fichas necesitan un diámetro de 50 (radio 25).
 CHECKER_RADIUS = 25
 DICE_SIZE = 40
 PIP_RADIUS = 4
 DOUBLING_CUBE_SIZE = 50
-
-# --- Posiciones Iniciales ---
-initial_positions = {
-    24: ('black', 2),
-    19: ('white', 5),
-    17: ('white', 3),
-    13: ('black', 5),
-    12: ('white', 5),
-    8:  ('black', 3),
-    6:  ('black', 5),
-    1:  ('white', 2),
-}
 
 # --- Funciones de Utilidad ---
 
@@ -122,15 +151,58 @@ def get_point_coordinates(point_num):
 
     return x, base_y, direction
 
-def draw_checkers(surface, positions):
-    for point, (player, count) in positions.items():
-        x, y_base, direction = get_point_coordinates(point)
+def draw_checkers(surface, board_state):
+    for point_num, checkers_on_point in enumerate(board_state):
+        if not checkers_on_point:
+            continue
+            
+        count = len(checkers_on_point)
+        player_color = checkers_on_point[0]
+            
+        x, y_base, direction = get_point_coordinates(point_num + 1) # +1 para ajustar el índice
         if x is None: continue
-        color = COLOR_BROWN_CHECKER if player == 'black' else COLOR_WHITE_CHECKER
+        
+        color = COLOR_BROWN_CHECKER if player_color == 'Negro' else COLOR_WHITE_CHECKER
         for i in range(count):
             y = y_base - (i * CHECKER_RADIUS * 2) if direction == 'down' else y_base + (i * CHECKER_RADIUS * 2)
             pygame.draw.circle(surface, color, (int(x), int(y)), CHECKER_RADIUS)
             pygame.draw.circle(surface, COLOR_OUTER_AREA, (int(x), int(y)), CHECKER_RADIUS, 2)
+
+def draw_bar_checkers(surface, bar_state):
+    """ Dibuja las fichas capturadas en la barra central. """
+    bar_center_x = MARGIN_SIDES + BOARD_WIDTH / 2
+    
+    # Fichas blancas (arriba de la barra)
+    white_checkers_count = len(bar_state.get("Blanco", []))
+    for i in range(white_checkers_count):
+        y = MARGIN_TOP + CHECKER_RADIUS + (i * CHECKER_RADIUS * 2)
+        pygame.draw.circle(surface, COLOR_WHITE_CHECKER, (int(bar_center_x), int(y)), CHECKER_RADIUS)
+        pygame.draw.circle(surface, COLOR_OUTER_AREA, (int(bar_center_x), int(y)), CHECKER_RADIUS, 2)
+
+    # Fichas marrones (abajo de la barra)
+    brown_checkers_count = len(bar_state.get("Negro", []))
+    for i in range(brown_checkers_count):
+        y = WINDOW_HEIGHT - MARGIN_TOP - CHECKER_RADIUS - (i * CHECKER_RADIUS * 2)
+        pygame.draw.circle(surface, COLOR_BROWN_CHECKER, (int(bar_center_x), int(y)), CHECKER_RADIUS)
+        pygame.draw.circle(surface, COLOR_OUTER_AREA, (int(bar_center_x), int(y)), CHECKER_RADIUS, 2)
+
+def draw_off_checkers(surface, off_state):
+    """ Dibuja las fichas que han sido retiradas del tablero. """
+    # Fichas blancas retiradas (lado derecho, arriba)
+    white_off_count = len(off_state.get("Blanco", []))
+    for i in range(white_off_count):
+        x = WINDOW_WIDTH - MARGIN_SIDES / 2
+        y = MARGIN_TOP + i * (CHECKER_RADIUS * 1.5)
+        pygame.draw.circle(surface, COLOR_WHITE_CHECKER, (int(x), int(y)), CHECKER_RADIUS)
+        pygame.draw.circle(surface, COLOR_OUTER_AREA, (int(x), int(y)), CHECKER_RADIUS, 2)
+
+    # Fichas marrones retiradas (lado derecho, abajo)
+    brown_off_count = len(off_state.get("Negro", []))
+    for i in range(brown_off_count):
+        x = WINDOW_WIDTH - MARGIN_SIDES / 2
+        y = WINDOW_HEIGHT - MARGIN_TOP - i * (CHECKER_RADIUS * 1.5) - CHECKER_RADIUS
+        pygame.draw.circle(surface, COLOR_BROWN_CHECKER, (int(x), int(y)), CHECKER_RADIUS)
+        pygame.draw.circle(surface, COLOR_OUTER_AREA, (int(x), int(y)), CHECKER_RADIUS, 2)
 
 def draw_single_die(surface, value, x, y):
     die_rect = pygame.Rect(x, y, DICE_SIZE, DICE_SIZE)
@@ -206,41 +278,332 @@ def start_screen(screen):
         
         pygame.display.flip()
 
+BEAR_OFF_RECTS = {
+    "Blanco": pygame.Rect(WINDOW_WIDTH - MARGIN_SIDES, MARGIN_TOP, MARGIN_SIDES, BOARD_HEIGHT / 2),
+    "Negro": pygame.Rect(WINDOW_WIDTH - MARGIN_SIDES, MARGIN_TOP + BOARD_HEIGHT / 2, MARGIN_SIDES, BOARD_HEIGHT / 2)
+}
+
+def is_bear_off_possible(game):
+    """ Verifica si el jugador actual puede empezar a retirar fichas. """
+    jugador_actual = game.obtener_jugador_actual()
+    if not jugador_actual:
+        return False
+    
+    color = jugador_actual.obtener_color()
+    board_state = game.obtener_estado_tablero()
+    home_board_indices = range(18, 24) if color == "Blanco" else range(0, 6)
+    
+    # Comprobar si todas las fichas están en el home board
+    total_checkers_in_home = 0
+    for i in home_board_indices:
+        if board_state[i] and board_state[i][0] == color:
+            total_checkers_in_home += len(board_state[i])
+            
+    # Sumar fichas ya retiradas
+    total_checkers_in_home += len(game.obtener_estado_retiradas().get(color, []))
+
+    return total_checkers_in_home == 15 # Un total de 15 fichas por jugador
+
+def get_point_from_pos(pos):
+    """ Convierte una posición (x, y) del ratón en un número de punto (1-24). """
+    x, y = pos
+
+    # Comprobar si el clic fue en una de las zonas de bear-off
+    for color, rect in BEAR_OFF_RECTS.items():
+        if rect.collidepoint(pos):
+            # Devolver un identificador especial para la zona de bear-off
+            return f"bear_off_{color}"
+
+    if not (MARGIN_SIDES < x < WINDOW_WIDTH - MARGIN_SIDES and MARGIN_TOP < y < WINDOW_HEIGHT - MARGIN_TOP):
+        return None
+
+    # Ajustar x para tener en cuenta la barra central
+    bar_center_x = MARGIN_SIDES + (BOARD_WIDTH - BAR_WIDTH) / 2
+    if x > bar_center_x + BAR_WIDTH:
+        x -= BAR_WIDTH
+    
+    col = int((x - MARGIN_SIDES) / POINT_WIDTH)
+
+    # Mitad superior (puntos 13-24)
+    if y < WINDOW_HEIGHT / 2:
+        if col < 6: return 24 - col
+        else: return 18 - (col - 6)
+    # Mitad inferior (puntos 1-12)
+    else:
+        if col < 6: return col + 1
+        else: return col + 7
+    return None
+
+def handle_mouse_click(pos, game, selected_point):
+    """ Gestiona la lógica de selección y movimiento de fichas, incluyendo la barra. """
+    jugador_actual = game.obtener_jugador_actual()
+    if not jugador_actual:
+        return selected_point, []
+
+    color_jugador = jugador_actual.obtener_color()
+    bar_state = game.obtener_estado_barra()
+    
+    clicked_point_or_area = get_point_from_pos(pos)
+    if clicked_point_or_area is None:
+        return None, [] # Clic fuera, deseleccionar todo y limpiar movimientos
+
+    # --- Lógica para mover desde la barra ---
+    if bar_state.get(color_jugador):
+        if isinstance(clicked_point_or_area, int):
+            destino_idx = clicked_point_or_area - 1
+            dado_valor = -1
+
+            if color_jugador == "Blanco":
+                dado_valor = destino_idx + 1
+            else: # "Negro"
+                dado_valor = 25 - (destino_idx + 1)
+            
+            try:
+                # La lógica de validación del dado está dentro de ejecutar_movimiento_barra
+                game.ejecutar_movimiento_barra(destino_idx, color_jugador, dado_valor)
+                print(f"Ficha de la barra movida a punto {clicked_point_or_area}")
+            except Exception as e:
+                print(f"Error al mover desde la barra: {e}")
+        
+        return None, [] # Deseleccionar después de intentar mover desde la barra
+
+    # --- Lógica de selección y movimiento normal ---
+    if selected_point is None:
+        # Si no hay punto seleccionado, el clic actual intenta seleccionar uno
+        if isinstance(clicked_point_or_area, int):
+            casilla = game.obtener_estado_tablero()[clicked_point_or_area - 1]
+            if casilla and casilla[0] == color_jugador:
+                possible_moves = get_possible_moves(game, clicked_point_or_area)
+                if possible_moves:
+                    print(f"Punto de origen seleccionado: {clicked_point_or_area}")
+                    print(f"Movimientos posibles: {possible_moves}")
+                    return clicked_point_or_area, possible_moves
+                else:
+                    print(f"El punto {clicked_point_or_area} no tiene movimientos válidos.")
+                    return None, []
+    else:
+        # Si ya hay un punto seleccionado, el clic actual es el destino
+        
+        # --- Bear-Off ---
+        if isinstance(clicked_point_or_area, str) and clicked_point_or_area == f"bear_off_{color_jugador}":
+            if is_bear_off_possible(game):
+                casilla_idx = selected_point - 1
+                dado_necesario = -1
+                if color_jugador == "Blanco":
+                    dado_necesario = 24 - casilla_idx
+                else: # Negro
+                    dado_necesario = casilla_idx + 1
+                
+                try:
+                    game.ejecutar_retiro(casilla_idx, dado_necesario, color_jugador)
+                    print(f"Ficha retirada del punto {selected_point}")
+                except Exception as e:
+                    print(f"Error al retirar la ficha: {e}")
+            else:
+                print("Aún no puedes retirar fichas.")
+            return None, [] # Deseleccionar
+            
+        # --- Movimiento a otro punto ---
+        if isinstance(clicked_point_or_area, int):
+            distancia = abs(clicked_point_or_area - selected_point)
+            
+            try:
+                game.ejecutar_movimiento(selected_point - 1, clicked_point_or_area - 1, color_jugador, distancia)
+                print(f"Movimiento de {selected_point} a {clicked_point_or_area}")
+            except Exception as e:
+                print(f"Error al mover: {e}")
+            
+            return None, [] # Deseleccionar y limpiar movimientos
+
+    return None, [] # Si no se hizo nada, deseleccionar
+
+def get_possible_moves(game, start_point_num):
+    """
+    Calcula los posibles puntos de destino para una ficha seleccionada.
+    """
+    if start_point_num is None:
+        return []
+
+    jugador_actual = game.obtener_jugador_actual()
+    color_jugador = jugador_actual.obtener_color()
+    available_dice = game.obtener_valores_dados() # Asume que esto devuelve los dados disponibles
+    
+    possible_dests = []
+    for die_value in set(available_dice): # Usa set para evitar duplicados si los dados son iguales
+        if color_jugador == "Blanco":
+            dest_point = start_point_num + die_value
+        else: # Negro
+            dest_point = start_point_num - die_value
+        
+        # Valida que el destino esté dentro del tablero (1-24)
+        if 1 <= dest_point <= 24:
+            # Aquí debería haber una validación más robusta llamando a la lógica del core,
+            # pero por ahora simulamos la comprobación básica.
+            # Por ejemplo, game.es_movimiento_valido(start_point_num - 1, dest_point - 1)
+            possible_dests.append(dest_point)
+            
+    # Lógica para bear-off
+    if is_bear_off_possible(game):
+        home_board_start = 19 if color_jugador == "Blanco" else 1
+        home_board_end = 24 if color_jugador == "Blanco" else 6
+        
+        if home_board_start <= start_point_num <= home_board_end:
+            for die_value in set(available_dice):
+                if color_jugador == "Blanco" and start_point_num + die_value > 24:
+                    possible_dests.append(f"bear_off_{color_jugador}")
+                elif color_jugador == "Negro" and start_point_num - die_value < 1:
+                    possible_dests.append(f"bear_off_{color_jugador}")
+
+    return list(set(possible_dests)) # Elimina duplicados si el bear-off se añade más de una vez
+
+def get_point_rect(point_num):
+    """ Devuelve un Rect para un punto específico, útil para dibujar resaltados. """
+    x, y_base, direction = get_point_coordinates(point_num)
+    if x is None:
+        return None
+    
+    height = TRIANGLE_HEIGHT
+    y = MARGIN_TOP if direction == 'up' else WINDOW_HEIGHT - MARGIN_TOP - height
+    
+    return pygame.Rect(x - POINT_WIDTH / 2, y, POINT_WIDTH, height)
+
+def draw_highlights(surface, possible_moves, color_jugador):
+    """ Dibuja un resaltado en los posibles puntos de destino. """
+    if not possible_moves:
+        return
+
+    highlight_surface = pygame.Surface((POINT_WIDTH, TRIANGLE_HEIGHT), pygame.SRCALPHA)
+    highlight_surface.fill((*COLOR_HIGHLIGHT, 100)) # Usa el color de resaltado con alpha
+
+    for move in possible_moves:
+        if isinstance(move, int):
+            rect = get_point_rect(move)
+            if rect:
+                surface.blit(highlight_surface, rect.topleft)
+        elif isinstance(move, str) and move.startswith("bear_off"):
+             # Resalta la zona de bear-off correspondiente
+            bear_off_rect = BEAR_OFF_RECTS[color_jugador]
+            # Crea una superficie separada para el resaltado del bear-off
+            bear_off_highlight = pygame.Surface(bear_off_rect.size, pygame.SRCALPHA)
+            bear_off_highlight.fill((*COLOR_HIGHLIGHT, 100))
+            surface.blit(bear_off_highlight, bear_off_rect.topleft)
+
+# --- Estados del Juego ---
+GAME_STATE_START_SCREEN = "start_screen"
+GAME_STATE_WAITING_FOR_ROLL = "waiting_for_roll"
+GAME_STATE_PLAYER_MOVE = "player_move"
+GAME_STATE_GAME_OVER = "game_over"
+
+# --- Elementos Interactivos ---
+roll_dice_button = pygame.Rect(WINDOW_WIDTH / 2 - 100, WINDOW_HEIGHT - 45, 200, 40)
+
+
 # --- Bucle Principal del Juego ---
 def run_pygame_app():
     pygame.init()
     center_window()
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pygame.display.set_caption("Backgammon")
+    font = pygame.font.Font(None, 30)
 
-    brown_player_name, white_player_name = start_screen(screen)
+    game_state = GAME_STATE_START_SCREEN
+    game = None
+    brown_player_name, white_player_name = "", ""
+    selected_point = None
+    possible_moves = []
     
-    positions = initial_positions.copy()
-    dice = [1, 1]
-
     running = True
     while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT: running = False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_t:
-                    dice = [random.randint(1, 6), random.randint(1, 6)]
-                    print(f"Dados tirados: {dice}")
-
-        screen.fill(COLOR_OUTER_AREA)
-        draw_board(screen)
-        draw_triangles(screen)
-        draw_checkers(screen, positions)
-        draw_dice(screen, dice)
-        # draw_doubling_cube(screen) # Eliminado según feedback
+        mouse_pos = pygame.mouse.get_pos()
         
-        font = pygame.font.Font(None, 30)
-        draw_text(screen, f"Marrón: {brown_player_name}", font, COLOR_TEXT, MARGIN_SIDES, 20)
-        draw_text(screen, f"Blanco: {white_player_name}", font, COLOR_TEXT, MARGIN_SIDES, WINDOW_HEIGHT - 40)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
 
-        pygame.display.flip()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if game_state == GAME_STATE_WAITING_FOR_ROLL:
+                    if roll_dice_button.collidepoint(mouse_pos):
+                        game.tirar_dados_turno_actual()
+                        print(f"Dados tirados: {game.obtener_valores_dados()}")
+                        game_state = GAME_STATE_PLAYER_MOVE
+                
+                elif game_state == GAME_STATE_PLAYER_MOVE:
+                    selected_point, possible_moves = handle_mouse_click(event.pos, game, selected_point)
+
+        # --- Lógica de Transición de Estados ---
+        if game_state == GAME_STATE_START_SCREEN:
+            # La función start_screen es bloqueante, devuelve los nombres cuando termina.
+            brown_player_name, white_player_name = start_screen(screen)
+            
+            # Bucle para manejar la tirada inicial hasta que no haya empate.
+            jugador_inicial = None
+            while jugador_inicial is None:
+                builder = PygameBuilder()
+                game = builder.crear_juego([white_player_name, brown_player_name])
+                dado_blanco, dado_negro = game.tirar_dados_primer_turno()
+                
+                # Muestra la tirada inicial en la pantalla
+                screen.fill(COLOR_OUTER_AREA)
+                draw_text(screen, f"Tirada inicial:", font, COLOR_TEXT, WINDOW_WIDTH/2, WINDOW_HEIGHT/2 - 50, center=True)
+                draw_text(screen, f"{white_player_name} (Blanco): {dado_blanco}", font, COLOR_TEXT, WINDOW_WIDTH/2, WINDOW_HEIGHT/2, center=True)
+                draw_text(screen, f"{brown_player_name} (Negro): {dado_negro}", font, COLOR_TEXT, WINDOW_WIDTH/2, WINDOW_HEIGHT/2 + 50, center=True)
+                pygame.display.flip()
+                
+                jugador_inicial = game.obtener_jugador_actual()
+                
+                if jugador_inicial is None:
+                    draw_text(screen, "¡Empate! Volviendo a lanzar...", font, COLOR_HIGHLIGHT, WINDOW_WIDTH/2, WINDOW_HEIGHT/2 + 100, center=True)
+                    pygame.display.flip()
+                    pygame.time.wait(2000)
+
+            print(f"El jugador inicial es: {jugador_inicial.obtener_nombre()}")
+            game_state = GAME_STATE_WAITING_FOR_ROLL
+
+        elif game_state == GAME_STATE_PLAYER_MOVE:
+            # Comprueba si el jugador ha agotado sus movimientos
+            if game.movimientos_restantes_count() == 0:
+                game.cambiar_turno()
+                game_state = GAME_STATE_WAITING_FOR_ROLL
+                print("-" * 20)
+                print(f"Turno de {game.obtener_jugador_actual().obtener_nombre()}. Lanza los dados.")
+                selected_point = None
+        
+        # --- Dibujado ---
+        if game_state != GAME_STATE_START_SCREEN:
+            screen.fill(COLOR_OUTER_AREA)
+            draw_board(screen)
+            draw_triangles(screen)
+            
+            # Dibuja los resaltados ANTES que las fichas
+            if possible_moves:
+                draw_highlights(screen, possible_moves, game.obtener_jugador_actual().obtener_color())
+            
+            draw_checkers(screen, game.obtener_estado_tablero())
+            draw_bar_checkers(screen, game.obtener_estado_barra())
+            draw_off_checkers(screen, game.obtener_estado_retiradas())
+            
+            if game.obtener_valores_dados():
+                draw_dice(screen, game.obtener_valores_dados())
+
+            # Resaltar el nombre del jugador actual
+            jugador_actual = game.obtener_jugador_actual()
+            jugador_actual_nombre = jugador_actual.obtener_nombre() if jugador_actual else ""
+            brown_color = COLOR_HIGHLIGHT if jugador_actual_nombre == brown_player_name else COLOR_TEXT
+            white_color = COLOR_HIGHLIGHT if jugador_actual_nombre == white_player_name else COLOR_TEXT
+            
+            draw_text(screen, f"Marrón: {brown_player_name}", font, brown_color, MARGIN_SIDES, 20)
+            draw_text(screen, f"Blanco: {white_player_name}", font, white_color, MARGIN_SIDES, WINDOW_HEIGHT - 40)
+
+            if game_state == GAME_STATE_WAITING_FOR_ROLL:
+                # Dibuja el botón de tirar dados
+                btn_color = COLOR_BUTTON_HOVER if roll_dice_button.collidepoint(mouse_pos) else COLOR_BUTTON
+                pygame.draw.rect(screen, btn_color, roll_dice_button)
+                draw_text(screen, "Tirar Dados", font, COLOR_TEXT, roll_dice_button.centerx, roll_dice_button.centery, center=True)
+
+            pygame.display.flip()
 
     pygame.quit()
+
 
 if __name__ == "__main__":
     run_pygame_app()
